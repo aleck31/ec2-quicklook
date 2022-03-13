@@ -1,0 +1,34 @@
+{
+  "resources": [
+    {
+      "name": "api_handler_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::565521294060:role/ec2-quicklook-dev-api_handler",
+      "role_name": "ec2-quicklook-dev-api_handler"
+    },
+    {
+      "name": "api_handler",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-1:565521294060:function:ec2-quicklook-dev"
+    },
+    {
+      "name": "jwt_auth_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::565521294060:role/ec2-quicklook-dev-jwt_auth",
+      "role_name": "ec2-quicklook-dev-jwt_auth"
+    },
+    {
+      "name": "jwt_auth",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-1:565521294060:function:ec2-quicklook-dev-jwt_auth"
+    },
+    {
+      "name": "rest_api",
+      "resource_type": "rest_api",
+      "rest_api_id": "sb7xdgi7al",
+      "rest_api_url": "https://sb7xdgi7al.execute-api.us-east-1.amazonaws.com/dv/"
+    }
+  ],
+  "schema_version": "2.0",
+  "backend": "api"
+}

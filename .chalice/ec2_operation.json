@@ -1,0 +1,71 @@
+{
+    "version": "2021.06",
+    "url":"https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/billing-info-fields.html",
+    "description": "AMI's platformDetails value indicates the operation of an Amazon EC2 instance",
+    "list": [
+        {
+        "platformDetails":"Linux/UNIX", 
+        "usageOperation":"RunInstances"},
+        {
+        "platformDetails":"Amazon Linux 2", 
+        "usageOperation":"RunInstances"},
+        {
+        "platformDetails":"Ubuntu", 
+        "usageOperation":"RunInstances"},
+        {
+        "platformDetails":"Debian 10", 
+        "usageOperation":"RunInstances"},
+        {
+        "platformDetails": "Red Hat BYOL Linux",
+        "usageOperation": "RunInstances:00g0"},
+        {
+        "platformDetails": "Red Hat Enterprise Linux",
+        "usageOperation": "RunInstances:0010"},
+        {
+        "platformDetails": "Red Hat Enterprise Linux with HA",
+        "usageOperation": "RunInstances:1010"},
+        {
+        "platformDetails": "Red Hat Enterprise Linux with SQL Server Standard and HA",
+        "usageOperation": "RunInstances:1014"},
+        {
+        "platformDetails": "Red Hat Enterprise Linux with SQL Server Enterprise and HA",
+        "usageOperation": "RunInstances:1110"},
+        {
+        "platformDetails": "Red Hat Enterprise Linux with SQL Server Standard",
+        "usageOperation": "RunInstances:0014"},
+        {
+        "platformDetails": "Red Hat Enterprise Linux with SQL Server Web",
+        "usageOperation": "RunInstances:0210"},
+        {
+        "platformDetails": "Red Hat Enterprise Linux with SQL Server Enterprise",
+        "usageOperation": "RunInstances:0110"},
+        {
+        "platformDetails": "SQL Server Enterprise",
+        "usageOperation": "RunInstances:0100"},
+        {
+        "platformDetails": "SQL Server Standard",
+        "usageOperation": "RunInstances:0004"},
+        {
+        "platformDetails": "SQL Server Web", 
+        "usageOperation": "RunInstances:0200"},
+        {
+        "platformDetails": "SUSE Linux", 
+        "usageOperation": "RunInstances:000g"},
+        {
+        "platformDetails": "Windows", 
+        "usageOperation": "RunInstances:0002"},
+        {
+        "platformDetails": "Windows BYOL", 
+        "usageOperation": "RunInstances:0800"},
+        {
+        "platformDetails": "Windows with SQL Server Enterprise *",
+        "usageOperation": "RunInstances:0102"},
+        {
+        "platformDetails": "Windows with SQL Server Standard",
+        "usageOperation": "RunInstances:0006"},
+        {
+        "platformDetails": "Windows with SQL Server Web",
+        "usageOperation": "RunInstances:0202"}
+    ]
+}
+  
