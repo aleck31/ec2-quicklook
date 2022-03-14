@@ -59,6 +59,7 @@ venv.bak/
 
 # chalice
 .chalice/deployments/
+.chalice/deployed/
 .chalice/venv/
 
 .backup
