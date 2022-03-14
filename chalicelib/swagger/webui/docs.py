@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict, Optional
-from chalicelib.openapi.encoders import jsonable_encoder
+from .encoders import jsonable_encoder
 
 # from starlette.responses import HTMLResponse
 
@@ -9,10 +9,8 @@ def get_swagger_ui_html(
     *,
     openapi_url: str,
     title: str,
-    swagger_js_url: str =
-    "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui-bundle.js",
-    swagger_css_url: str =
-    "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui.css",
+    swagger_js_url: str = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui-bundle.js",
+    swagger_css_url: str = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui.css",
     swagger_favicon_url: str = "",
     oauth2_redirect_url: Optional[str] = None,
     init_oauth: Optional[Dict[str, Any]] = None,
@@ -61,9 +59,8 @@ def get_swagger_ui_html(
     </body>
     </html>
     """
-
-    return html
     # return HTMLResponse(html)
+    return html    
 
 
 def get_redoc_html(

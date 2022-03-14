@@ -7,14 +7,14 @@ import base64
 
 import boto3
 from boto3.dynamodb.types import Binary
-from chalicelib.utils import config
+from chalicelib import utils
 
 
 
 
 def get_table_name(stage):
     '''load table name from config'''
-    tableName = config.load_env_var('USERS_TABLE_NAME', stage)
+    tableName = utils.load_env_var('USERS_TABLE_NAME', stage)
     return tableName
 
 

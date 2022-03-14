@@ -5,6 +5,7 @@ import boto3
 from uuid import uuid4
 from chalice import Blueprint, UnauthorizedError
 
+
 bp = Blueprint(__name__)
 
 _USER_DB = None
@@ -49,7 +50,8 @@ def get_jwt_token(username, password, dbrecord, secret):
             'jti': unique_id,
             # NOTE: add 'exp' if you want tokens to expire.
         }
-        return jwt.encode(payload, secret, algorithm='HS256').decode('utf-8')
+        # return jwt.encode(payload, secret, algorithm='HS256').decode('utf-8')
+        return jwt.encode(payload, secret, algorithm='HS256')
     raise UnauthorizedError('Invalid password')
 
 

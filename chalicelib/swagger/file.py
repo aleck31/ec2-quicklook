@@ -52,7 +52,7 @@ def get_static_file(file_name: str, search_from_base_path: str = None) -> str:
         static_file_path = find_file(
             file_name, search_from_base_path)
         if static_file_path is not None:
-            with open(static_file_path) as f:
+            with open(static_file_path, encoding='utf-8') as f:
                 content = f.read()
                 logger.debug(content)
                 # print(content)

@@ -3,9 +3,8 @@ import uuid
 import json
 import argparse
 import base64
-
 import boto3
-from chalicelib.utils.config import write_env_var, exist_in_config
+from chalicelib.utils import write_env_var, exist_in_config
 
 
 AUTH_KEY_PARAM_NAME = '/ec2-quicklook/auth-key'

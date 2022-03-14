@@ -1,12 +1,46 @@
-from chalicelib.utils.url import build_api_endpoint
-from chalice import Chalice
 import logging
-from chalicelib.openapi import docs
 import boto3
 import json
-from typing import Dict
+from typing import Optional, Dict
+from urllib.parse import urlencode
+from chalice import Chalice
+from chalice.app import Request
+from .webui import docs
+
 
 logger = logging.getLogger()
+
+
+
+def build_api_endpoint(
+    current_request: Request, 
+    request_path: str, 
+    query_params: Optional[Dict] = None
+) -> str:
+    logger.info(f"Enter build_api_endpoint for {request_path}")
+    request_dict = current_request.to_dict()
+
+    context = request_dict["context"]
+    stage = context.get("stage")
+    api_domain = context.get("domainName")
+    api_id = context.get("apiId")
+
+    if query_params is not None:
+        if "api_id" in query_params:
+            # replace api value with current api id
+            query_params["api_id"] = api_id
+
+        if "stage" in query_params:
+            query_params["stage"] = stage
+
+    if query_params is not None:
+        url = f"https://{api_domain}/{stage}/{request_path.strip('/')}/?"
+        url = url + urlencode(query_params)
+    else:
+        url = f"https://{api_domain}/{stage}/{request_path.strip('/')}"
+
+    logger.info(f"Exit build_api_endpoint: {url}")
+    return url
 
 
 def get_swagger_ui(app: Chalice) -> str:
@@ -19,15 +53,17 @@ def get_swagger_ui(app: Chalice) -> str:
         str: Swagger UI HTML
     """
     # Call internal API to retrieve static resource
-    ui_bundle_js_url = build_api_endpoint(
-        current_request=app.current_request, request_path="ui-bundle-js"
-    )
     css_url = build_api_endpoint(
-        current_request=app.current_request, request_path="css"
+        current_request=app.current_request, 
+        request_path="swagger/css"
     )
+    ui_bundle_js_url = build_api_endpoint(
+        current_request=app.current_request, 
+        request_path="swagger/bundle"
+    )    
     open_api_url = build_api_endpoint(
         current_request=app.current_request,
-        request_path="swagger-url",
+        request_path="swagger/openapi",
         query_params={"api_id": "", "stage": ""},
     )
     logger.info(f"open_api_url: {open_api_url}")
