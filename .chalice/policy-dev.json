@@ -8,12 +8,35 @@
                 "logs:CreateLogStream",
                 "logs:PutLogEvents"
             ],
-            "Resource": "*"
+            "Resource": "arn:aws:logs:*:*:*"
         },
         {
             "Effect": "Allow",
             "Action": ["apigateway:POST", "apigateway:GET"],
             "Resource": "*"
-        }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+              "dynamodb:PutItem",
+              "dynamodb:DeleteItem",
+              "dynamodb:UpdateItem",
+              "dynamodb:GetItem",
+              "dynamodb:Scan",
+              "dynamodb:Query"
+            ],
+            "Resource": [
+              "arn:aws:dynamodb:*:*:table/users-jwt-*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+              "ssm:GetParameter"
+            ],
+            "Resource": [
+                "arn:aws:ssm:*:*:parameter/ec2-quicklook/auth-key"
+            ]
+        }        
     ]
 }

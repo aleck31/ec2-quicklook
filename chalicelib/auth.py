@@ -3,22 +3,13 @@ import datetime
 import jwt
 import boto3
 from uuid import uuid4
-from chalice import Blueprint, UnauthorizedError
+from chalice import UnauthorizedError
 
 
-bp = Blueprint(__name__)
 
 _USER_DB = None
 _AUTH_KEY = None
 _SSM_AUTH_KEY_NAME = '/ec2-quicklook/auth-key'
-
-
-def get_users_db():
-    global _USER_DB
-    if _USER_DB is None:
-        _USER_DB = boto3.resource('dynamodb').Table(
-            os.environ['USERS_TABLE_NAME'])
-    return _USER_DB
 
 
 def get_auth_key():
@@ -30,6 +21,14 @@ def get_auth_key():
         )['Parameter']['Value']
         _AUTH_KEY = base64.b64decode(base64_key)
     return _AUTH_KEY
+
+
+def get_users_db():
+    global _USER_DB
+    if _USER_DB is None:
+        _USER_DB = boto3.resource('dynamodb').Table(
+            os.environ['USERS_TABLE_NAME'])
+    return _USER_DB
 
 
 def get_jwt_token(username, password, dbrecord, secret):
@@ -50,8 +49,9 @@ def get_jwt_token(username, password, dbrecord, secret):
             'jti': unique_id,
             # NOTE: add 'exp' if you want tokens to expire.
         }
-        # return jwt.encode(payload, secret, algorithm='HS256').decode('utf-8')
+        # remove decode() when you get: AttributeError: 'str' object has no attribute 'decode'
         return jwt.encode(payload, secret, algorithm='HS256')
+        # return jwt.encode(payload, secret, algorithm='HS256').decode('utf-8')
     raise UnauthorizedError('Invalid password')
 
 
