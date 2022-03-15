@@ -1,7 +1,8 @@
+import os, base64
 import logging
 from pydantic import BaseModel, Field
-from chalice import Chalice, AuthResponse, NotFoundError
-from chalice.app import Response
+from chalice import Chalice
+from chalice.app import Response, AuthResponse, NotFoundError
 from chalicelib import auth, swagger, product
 from chalicelib.swagger.utils import get_swagger_ui
 
@@ -21,12 +22,26 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
+
+@app.route('/auth', methods=['POST'])
+def auth_token():
+    """Get Auth Token"""
+    # current_request.json_body - The parsed JSON body.
+    body = app.current_request.json_body
+    record = auth.get_users_db().get_item(
+        Key={'username': body['username']})['Item']
+    jwt_token = auth.get_jwt_token(
+        body['username'], body['password'], record, auth.get_auth_key())
+    return {'token': jwt_token}
+
+
 @app.route('/', methods=['GET'])
 def get_volume_detail():
-    curr_ver = 'v0.5'
+    """"""
+    curr_ver = '0.5'
     return {
-        'server':'running',        
-        'version': curr_ver
+        'server':'running',
+        'version':curr_ver
     }
 
 
@@ -45,51 +60,35 @@ def get_doc():
     )
 
 
-@app.route('/auth', methods=['GET'])
-def auth_token():
-    '''用户授权'''
-    # current_request.query_params - A dict of the query params.
-    query = app.current_request.query_params
-    dbrecord = auth.get_users_db().get_item(
-        Key={'username': query['username']}
-    )['Item']
-    jwt_token = auth.get_jwt_token(
-        query['username'], 
-        query['password'], 
-        dbrecord, 
-        auth.get_auth_key())
-    return {'token': jwt_token}
+@app.route('/help')
+def help():
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="utf-8">
+    <title>{app.app_name}</title>
+    </head>
+    <body>
+    <div id="container">
+    <p>User Guide</p>
+    </div>
+    </body>
+    </html>        
+    """
+    return Response(
+        body=html,
+        headers={'Content-Type': 'text/html'},
+        status_code=200
+    )
 
 
-@app.route('/login', methods=['POST'])
-def login():
-    '''用户授权'''
-    # current_request.json_body - The parsed JSON body.
-    body = app.current_request.json_body
-    dbrecord = auth.get_users_db().get_item(
-        Key={'username': body['username']}
-    )['Item']
-    jwt_token = auth.get_jwt_token(
-        body['username'], 
-        body['password'], 
-        dbrecord, 
-        auth.get_auth_key())
-    return {'token': jwt_token}
-
-
-# Here are a few more examples:
-#
-@app.route('/hello/{name}')
-def hello_name(name):
-    # '/hello/james' -> {"hello": "james"}
-    return {'hello': name}
-
-@app.route('/users', methods=['POST'])
-def create_user():
-    # This is the JSON body the user sent in their POST request.
-    user_as_json = app.current_request.json_body
-    # We'll echo the json body back to the user in a 'user' key.
-    return {'user': user_as_json}
-
-# See the README documentation for more examples.
-#
+@app.route("/favicon.ico", methods=["GET"])
+def get_favicon():
+    """Get favicon image"""
+    icon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="96.00025019387095" height="95.9998823165437" viewBox="0 0 96.00025019387095 95.9998823165437" fill="none"><path id="分组 1" fill-rule="evenodd" style="fill:#F48D0C" transform="translate(0 0)  rotate(0 48.00012509693548 47.99994115827185)" opacity="1" d="M81.9445 81.9371C93.8445 70.0371 98.1845 53.4371 94.9745 38.1071C89.2645 38.3771 83.6445 40.6871 79.2845 45.0471L31.3145 93.0171C48.3545 99.3171 68.2545 95.6271 81.9445 81.9371Z M50.95 16.72C55.31 12.36 57.62 6.73 57.89 1.02C42.56 -2.19 25.96 2.16 14.06 14.06C0.37 27.75 -3.32 47.65 2.98 64.69L50.95 16.72Z M14.0565 81.945C17.1465 85.025 20.5465 87.605 24.1665 89.675L76.6365 37.205C81.5565 32.275 81.5565 24.295 76.6365 19.365C71.7065 14.445 63.7265 14.445 58.7965 19.365L6.32652 71.845C8.39652 75.455 10.9765 78.855 14.0565 81.945Z " /></svg>'
+    return Response(
+        body=icon, 
+        status_code=200,
+        headers={"Content-Type": "image/svg+xml"},
+    )

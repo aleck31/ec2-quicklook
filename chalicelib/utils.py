@@ -3,17 +3,15 @@ import json
 
 
 
-def load_operations():
-    '''load platformDetail to operation mapping list from json file'''
-    with open(os.path.join('.chalice', 'ec2_operation.json')) as f:
-        data = json.load(f)
-    return data['list']
+def load_json_config(config):
+    '''load config list from json file'''
+    # usage operation config: ec2_operation.json
+    # instance family config: ec2_instance.json
+    file_name = config+'.json'
+    with open(os.path.join('chalicelib', file_name), encoding='utf-8') as f:
+        config = json.load(f)
+    return config['list']
 
-def load_instance_types():
-    '''load platformDetail to operation mapping list from json file'''
-    with open(os.path.join('.chalice', 'ec2_instance.json')) as f:
-        data = json.load(f)
-    return data['list']
 
 def load_env_var(env_var,stage='dev'):
     '''load environment variable from .chalice config'''

@@ -1,19 +1,74 @@
 import ast
+from chalicelib.utils import load_json_config
 
 
 INSTANCE_TYPE_URL = 'https://aws.amazon.com/cn/ec2/instance-types/'
+VOLUME_TYPE_URL = 'https://aws.amazon.com/cn/ebs/volume-types/'
 
 
 class EC2Client(object):
     def __init__(self, boto3_client):
         self._boto3_client = boto3_client
 
-    #SDK: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html
-    def get_instance_family(self):
-        pass
+    def get_usage_operations(self):
+        list = load_json_config('ec2_operation')
+        return list
 
-    def get_instance_types(self, region, architecture, family):
-        pass
+    def get_instance_family(self):
+        list = load_json_config('ec2_instance')
+        familyList = []
+        for f in list:
+            for i in f['family']:
+                familyList.append(
+                    {
+                        'category': f['category'],
+                        'name': i['name'],
+                        'description': i['description'],
+                        'architecture': i['architecture']
+                    }
+                )
+        # return list
+        return familyList
+
+
+    #SDK: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html
+    def get_instance_types(self, architecture, instance_family):
+        try:
+            if instance_family == 'all':
+                desc_args = {
+                    'Filters' : [
+                        {'Name': 'current-generation', 'Values': ['true']},
+                        {'Name': 'processor-info.supported-architecture', 'Values': [architecture]},
+                    ]
+                }
+            else:
+                instance_type = instance_family+"."+"*"
+                desc_args = {
+                    'Filters' : [
+                        {'Name': 'current-generation', 'Values': ['true']},
+                        {'Name': 'processor-info.supported-architecture', 'Values': [architecture]},             
+                        {'Name': 'instance-type', 'Values': [instance_type]}
+                    ]
+                }
+            instypeList = []
+            while True:
+                result = self._boto3_client.describe_instance_types(**desc_args)
+        #         print(describe_result.keys())
+                for i in result['InstanceTypes']:
+                    insType = i['InstanceType']
+                    tmp = {
+                        'instanceType': insType,
+                        'instanceFamily': insType.split('.')[0]
+                    }
+                    instypeList.append(tmp)
+                if 'NextToken' not in result:
+                    break
+                desc_args['NextToken'] = result['NextToken']
+
+            return instypeList
+
+        except Exception as ex:
+            return '%s: %s' %(self.__class__.__name__ ,ex)
 
 
 
@@ -45,7 +100,7 @@ class PricingClient(object):
                 'data':svcodeList
             }
         except Exception as ex:
-            return str(ex)
+            return '%s: %s' %(self.__class__.__name__ ,ex)
 
         
     def get_service_attributes(self, service_code = 'AmazonEC2'):
@@ -60,7 +115,7 @@ class PricingClient(object):
                 'data':attrList
             }
         except Exception as ex:
-            return str(ex)
+            return '%s: %s' %(self.__class__.__name__ ,ex)
 
 
     def get_attribute_values(self, service_code = 'AmazonEC2', attribute_name = 'instanceType'):
@@ -85,8 +140,8 @@ class PricingClient(object):
                 'count':len(valueList),
                 'data':valueList
             }
-        except Exception:
-            pass
+        except Exception as ex:
+            return '%s: %s' %(self.__class__.__name__ ,ex)
 
 
     def get_product_instance(self, region, instance_type, operation, 
@@ -119,45 +174,45 @@ class PricingClient(object):
             # 获取属性值并进行归类
             attrList = resultDict['product']['attributes']
             productMeta = {
-                'instanceFamily': 'Compute optimized',
-                'currentGeneration': 'Yes',
-                'introduceUrl': INSTANCE_TYPE_URL + instance_type,
-                'regionCode': 'us-east-1', 
-                'location': 'US East (N. Virginia)',
-                'tenancy': 'Shared',
-                'capacitystatus': 'UnusedCapacityReservation',
-                'usagetype': 'UnusedBox:c4.2xlarge',
-                'instancesku': 'SVMA6TVRGD4B8MMP',
-                'operation': 'RunInstances:0102', 
-                'normalizationSizeFactor': '16',
-                'ecu': '31',                
+                'instanceFamily': attrList['instanceFamily'],
+                'currentGeneration': attrList['currentGeneration'],
+                'introduceUrl': INSTANCE_TYPE_URL + instance_type.split('.')[0],
+                'regionCode': attrList['regionCode'], 
+                'location': attrList['location'],
+                'tenancy': attrList['tenancy'],
+                'capacitystatus': attrList['capacitystatus'],
+                'usagetype': attrList['usagetype'],
+                'instancesku': attrList['instancesku'],
+                'operation': attrList['operation'], 
+                'normalizationSizeFactor': attrList['normalizationSizeFactor'],
+                'ecu': attrList['ecu'],                
             }
             hardwareSpecs = {
-                'physicalProcessor': 'Intel Xeon E5-2666 v3 (Haswell)',
-                'clockSpeed': '2.9 GHz',
-                'processorArchitecture': '64-bit',
-                'vcpu': '8',
-                'memory': '15 GiB',
-                'dedicatedEbsThroughput': '1000 Mbps',
-                'networkPerformance': 'High',
+                'physicalProcessor': attrList['physicalProcessor'],
+                'clockSpeed': attrList['clockSpeed'],
+                'processorArchitecture': attrList['processorArchitecture'],
+                'vcpu': attrList['vcpu'],
+                'memory': attrList['memory'],
+                'dedicatedEbsThroughput': attrList['dedicatedEbsThroughput'],
+                'networkPerformance': attrList['networkPerformance'],
             }
             softwareSpecs = {
-                'operatingSystem': 'Windows',
-                'preInstalledSw': 'SQL Ent',
-                'licenseModel': 'No License required',
+                'operatingSystem': attrList['operatingSystem'],
+                'preInstalledSw': attrList['preInstalledSw'],
+                'licenseModel': attrList['licenseModel'],
             }            
-            instanceSotrage = [
-                {'volumeType': 'Instance Store',
-                 'description': attrList['storage']}
-            ]
+            instanceSotrage = {
+                'volumeType': 'Instance Store',
+                'description': attrList['storage']
+            }
             productFeature = {
-                'intelTurboAvailable': 'Yes',
-                'vpcnetworkingsupport': 'true',
-                'enhancedNetworkingSupported': 'Yes',
-                'classicnetworkingsupport': 'false',
-                'intelAvx2Available': 'Yes',
-                'intelAvxAvailable': 'Yes',
-                'processorFeatures': 'Intel AVX; Intel AVX2; Intel Turbo',
+                'intelTurboAvailable': attrList['intelTurboAvailable'],
+                'vpcnetworkingsupport': attrList['vpcnetworkingsupport'],
+                'enhancedNetworkingSupported': attrList['enhancedNetworkingSupported'],
+                'classicnetworkingsupport': attrList['classicnetworkingsupport'],
+                'intelAvx2Available': attrList['intelAvx2Available'],
+                'intelAvxAvailable': attrList['intelAvxAvailable'],
+                'processorFeatures': attrList['processorFeatures'],
             }        
             
             # 提取价格信息
@@ -181,10 +236,10 @@ class PricingClient(object):
 
             prdInstance = {
                 'productMeta':productMeta,
-                'hardwareList': hardwareList,                
-                'sotrageList':sotrageList,
-                'softwareList':softwareList,
-                'featureList':featureList,
+                'hardwareSpecs': hardwareSpecs,                
+                'softwareSpecs':softwareSpecs,
+                'instanceSotrage':instanceSotrage,
+                'productFeature':productFeature,
                 'listPrice':priceList,                
             }
             return prdInstance        
@@ -194,7 +249,7 @@ class PricingClient(object):
         
         
         
-    def get_product_volume(self, region, volume_type, volume_size:int, option='OnDemand'):
+    def get_product_volume(self, region, volume_type, volume_size, option='OnDemand'):
         '''Get EBS Volume Attributes and ListPrice [unit: GB-Mo]'''
         try:
             result = self._boto3_client.get_products(
@@ -217,16 +272,17 @@ class PricingClient(object):
             attrList = resultDict['product']['attributes']
             
             productMeta = {
-                'volumeType': 'General Purpose',
-                'instanceFamily': 'Compute optimized',
-                'storageMedia': 'SSD-backed',
-                'usagetype': 'EBS:VolumeUsage.gp2',
+                'volumeType': attrList['volumeType'],
+                'location': attrList['location'],
+                'storageMedia': attrList['storageMedia'],
+                'introduceUrl': '%s#%s' %(VOLUME_TYPE_URL, volume_type),
+                'usagetype': attrList['usagetype'],
             }
             productSpecs = {
-                'maxThroughputvolume': '250 MiB/s',
-                'maxIopsvolume': '16000',
-                'maxVolumeSize': '16 TiB',
-                'maxIopsBurstPerformance': '3000 for volumes <= 1 TiB',                
+                'maxThroughputvolume': attrList['maxThroughputvolume'],
+                'maxIopsvolume': attrList.get('maxIopsvolume'),
+                'maxVolumeSize': attrList.get('maxVolumeSize'),
+                'maxIopsBurstPerformance': attrList.get('maxIopsBurstPerformance'),              
             }
 #             volumeList = {
 #                 'volumeType': volume_type,
@@ -244,7 +300,7 @@ class PricingClient(object):
                 'unit':'Month',
                 'pricePerUnit': {
                     'currency': currency,
-                    'value': float(value)*volume_size
+                    'value': float(value)*float(volume_size)
                 },
                 'effectiveDate':terms['effectiveDate']
             }                        
