@@ -4,7 +4,7 @@
   "stages": {
     "dev": {
       "api_gateway_stage": "api",
-      "autogen_policy": true,
+      "autogen_policy": false,
       "environment_variables": {
         "USERS_TABLE_NAME": "users-jwt-799b4fa4-8117-46df-9444-dacd8add3673",
         "ENV_LOG_LEVEL": "INFO"
@@ -12,7 +12,7 @@
     },
     "qa": {
       "api_gateway_stage": "qa",
-      "autogen_policy": false,
+      "autogen_policy": true,
       "environment_variables": {
         "ENV_LOG_LEVEL": "ERROR"
       }

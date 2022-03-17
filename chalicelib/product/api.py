@@ -37,39 +37,46 @@ def get_ec2_client(region = 'us-east-1'):
     return _EC2_CLIENT
 
 
-@bp.route('/product/{res}', methods=['GET'], cors=True)
+@bp.route('/product/instance', methods=['GET'], cors=True)
 # @bp.route('/product/instance', methods=['GET'])
-def get_product_info(res):
+def get_product_instance():
     query = bp.current_request.query_params
-    # username = get_authorized_username(bp.current_request)
+    if not query:
+        raise BadRequestError('incorrect query parameter')
     try:
-        client = get_pricing_client()
-        if res == 'instance':        
-            resp = client.get_product_instance(
-                region = query.get('region'), 
-                instance_type = query.get('type'), 
-                operation = query.get('op')
-            )
-        elif res == 'volume':
-            resp = client.get_product_volume(
-                region = query.get('region'), 
-                volume_type = query.get('type'), 
-                volume_size = query.get('size')
-            )
-        else:
-            resp = {
-                'error':'incorrect path parameter'
-            }
-            # raise BadRequestError('incorrect path parameter')
-        
+        client = get_pricing_client() 
+        resp = client.get_product_instance(
+            region = query.get('region'), 
+            instance_type = query.get('type'), 
+            operation = query.get('op')
+        )        
         return Response(
             body=resp,
             headers={"Content-Type": "application/json"}
         )
-    
     except Exception as ex:
         return ex
-        
+
+
+@bp.route('/product/volume', methods=['GET'], cors=True)
+def get_product_volume():
+    query = bp.current_request.query_params
+    if not query:
+        raise BadRequestError('incorrect query parameter')
+    try:
+        client = get_pricing_client()
+        resp = client.get_product_volume(
+            region = query.get('region'), 
+            volume_type = query.get('type'), 
+            volume_size = query.get('size')
+        )        
+        return Response(
+            body=resp,
+            headers={"Content-Type": "application/json"}
+        )
+    except Exception as ex:
+        return ex        
+
 
 @bp.route('/instance/{res}', methods=['GET'], cors=True)
 def get_parm_list(res):
@@ -84,10 +91,12 @@ def get_parm_list(res):
                 instance_family = query.get('family')
             )           
         elif res == 'family':
-            list = client.get_instance_family()
+            list = client.list_instance_family(
+                architecture = query.get('arch')
+            )
             resp = list
         elif res == 'operation':        
-            list = client.get_usage_operations()
+            list = client.list_usage_operations()
             resp = list 
                  
         else:

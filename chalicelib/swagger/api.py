@@ -1,5 +1,5 @@
 from chalice.app import Response
-from .file import get_static_file
+from chalicelib.file import get_static_file
 from .utils import export_api_to_json
 from . import bp, logger
 
@@ -29,7 +29,8 @@ def get_swagger_css():
     except Exception as ex:
         return Response(
             body=f"Failed request: {css_file}. {ex}",
-            status_code=404
+            status_code=404,
+            headers={"Content-Type": "text/html"}
         )
 
 
@@ -41,7 +42,7 @@ def get_swagger_ui_bundle():
         str: Return JavaScript for Swagger UI from static folder
     """
     ui_js_file = "swagger-ui-bundle.js"
-    logger.info(f"Endpoint: Get CSS : {ui_js_file} static file")
+    logger.info(f"Endpoint: Get JS : {ui_js_file} static file")
     try:
         content = get_static_file(file_name=ui_js_file)
         return Response(
@@ -52,6 +53,7 @@ def get_swagger_ui_bundle():
     except Exception as ex:
         return Response(
             body=f"{ui_js_file} not found. {ex}", 
-            status_code=404
+            status_code=404,
+            headers={"Content-Type": "text/html"},
         )
 

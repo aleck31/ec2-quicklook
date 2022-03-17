@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>EC2 QuickLook</title>
+    <link rel="stylesheet" href="css/main">
+    <!-- <link rel="stylesheet" href="/css/bootstrap"> -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.1/css/all.css">
+    
+  </head>
+
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-12" id="navigation-bar">
+          <div class="row">
+            <div class="col-1" id="logo">
+              <a href=".">
+                  <img src="favicon.ico" alt="logo" style="height: 42px;">
+              </a>
+            </div>
+            <div class="col-2" id="logo-title">
+              <p> EC2 QuickLook</p>
+            </div>            
+            <div class="col-9" id="nav-links">
+              <a href="docs">
+                <p>API Docs</p>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" id="main-page">
+
+        <div class="col-1" id="sidebar">          
+          <p class="text-center">{{ sidebar.version }}</p>
+          <p class="text-center">Version</p>
+          <p class="text-center">{{ sidebar.title }}</p>
+        </div>
+
+        <div class="col-11" id="container">
+
+        <form action="/" class="form-text" method="GET">
+          <!-- serach conditions -->
+          <div class="row" id="search">
+            <div class="col-10" id="condition">
+              <span>Region:</span>
+              <select>
+                {% for l in region_list %}
+                  <option value="{{ l }}">{{ l }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-1" id="button">
+              <button class="btn btn-success text-center" type="submit" name="button">
+                QuickLook
+              </button>   
+            </div>    
+           </div>
+
+          <div class="row" id="search">
+            <div class="col-10" id="condition">
+              <span>Architecture:</span>
+              <select>
+                <option value="x86_64">x86_64</option>
+                <option value="arm64">arm64</option>
+              </select>
+              <span>Instance Family:</span>
+              <select>
+                {% for l in family_list %}
+                  <option value="{{ l.name }}">{{ '%s: %s' %(l.name,l.description) }}</option>
+                {% endfor %}
+              </select>
+              <span>Instance Type:</span>
+              <select>
+                {% for l in types_list %}
+                  <option value="{{ l.instanceType }}">{{ l.instanceType }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>              
+          <div class="row" id="search">
+            <div class="col-10" id="condition">
+              <span>Operation:</span>
+              <select>
+                {% for l in operation_list %}
+                  <option value="{{ l.operation }}">{{ l.platform }}</option>
+                {% endfor %}
+              </select>             
+            </div>
+          </div>
+        </form>
+
+
+          <!-- product detail -->
+          <div class="row" id="product">
+            <div class="tabbable" id="tabs-109440">
+              <ul class="nav nav-tabs">
+                <li class="nav-item">
+                  <a class="nav-link active show" href="#tab1" data-toggle="tab">Section 1</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#tab2" data-toggle="tab">Section 2</a>
+                </li>
+              </ul>
+              <div class="tab-content">
+                <div class="tab-pane active" id="panel-248668">
+                  <p>
+                    I'm in Section 1.
+                  </p>
+                  <div class="form-group">
+                    <label>
+                        Title
+                        <input type="text" name="title" value="">
+                      </label>
+                  </div>
+                </div>
+                <div class="tab-pane" id="tab2">
+                  <p>
+                    Howdy, I'm in Section 2.Howdy, I'm in Section 2.Howdy, I'm in Section 2.Howdy, I'm in Section 2.
+                  </p>
+                  <div class="form-group">
+                    <textarea name="content" rows="15" style="resize: horizontal;"></textarea>                   
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      
+    </div>
+    <!-- <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script> -->
+    <script src="js/jquery"></script>
+    <!-- <script src="/js/bootstrap"></script> -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js"></script>
+    <script src="js/main"></script>
+  </body>
+</html>

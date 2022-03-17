@@ -1,6 +1,12 @@
-# AWS Chalice Template Project with Swagger UI
+# EC2 QuickLook
+A tool that help you to quickly query EC2 instance information, including: configuration, specifications, features and monthly usage costs for reference. 
 
-AWS Chalice Starter Template with Build-in Swagger UI Support
+## What is this project?
+This project is my practice of using aws chalice for python development.  It contains backend API and a simple frontend page, and integrates swagger ui to visualize the API's resources.
+You can deploy it to AWS cloud environment to run with one command when you complete the code development of all functions and interfaces, . No server, container, storage, etc. resources are needed for deployment.
+It's that simple! 
+
+<br>
 
 ## AWS Chalice
 
@@ -10,15 +16,9 @@ AWS Chalice Starter Template with Build-in Swagger UI Support
 
 <br>
 
-## What is this project?
-
-This project provides a ready-to-use template for your project. The biggest value-add is the built-in Swagger UI.
-
-<br>
-
 ## Prerequisite
 
-- [Visual Studio Code](https://www.python.org/downloads/release/python-381/)
+- [Visual Studio Code](#)
 - [Python](https://www.python.org/downloads/release/python-381/) >= 3.8.1
 - [AWS Credential](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
 
@@ -26,19 +26,13 @@ This project provides a ready-to-use template for your project. The biggest valu
 
 ## Install
 
-Clone Git Repository to your local file system
+Clone Git repository to local and navigate to the project folder
 
 ```bash
 
-git clone https://github.com/samuelkhtu/ec2-quicklook.git
+❯ git clone https://github.com/aleck31/ec2-quicklook.git
 
-```
-
-Navigate to the ec2-quicklook folder
-
-```bash
-
-cd ec2-quicklook
+❯ cd ec2-quicklook
 
 ```
 
@@ -46,8 +40,7 @@ Setup Python Virtual Environment
 
 ```bash
 
-python -m venv .venv
-
+❯ python -m venv .venv
 
 ```
 
@@ -55,11 +48,11 @@ Activate Python Virtual Environment
 
 ```bash
 
-# Mac
-source .venv/bin/Activate
-
 # Window
-source .venv/Scripts/Activate
+❯ .venv/Scripts/Activate.ps1
+
+# Linux/Mac
+$ source .venv/bin/Activate
 
 ```
 
@@ -67,10 +60,32 @@ Install Required Python Library
 
 ```bash
 
-pip install -r requirements.txt
+❯ pip install -r requirements.txt
 
 ```
+Create Resources
+```bash
 
+❯ python create-resources.py
+
+```
+Create Users for Auth
+```bash
+
+❯ python users.py --add-user
+
+ Username: <demo_user>
+ Password: <your_passwd>
+
+```
+Run Locally for Experience [option]
+
+```bash
+
+❯ chalice local 
+
+```
+ 
 Deploy To AWS
 
 ```bash
@@ -81,11 +96,12 @@ Updating lambda function: ec2-quicklook-dev
 Updating rest API
 Resources deployed:
   - Lambda ARN: arn:aws:lambda:us-east-1::function:ec2-quicklook-dev
-  - Rest API URL: https://...execute-api.us-east-1.amazonaws.com/dv/
+  - Rest API URL: https://...execute-api.us-east-1.amazonaws.com/api/
 
 ```
 
-Copy & paste the URL from your terminal to your browser. You should see the familiar [Swagger UI](https://swagger.io/tools/swagger-ui/).
+You should see a familiar [Swagger UI](https://swagger.io/tools/swagger-ui/) at the docs endpoint like this:  
+https://...execute-api.us-east-1.amazonaws.com/api/docs
 
 <br>
 

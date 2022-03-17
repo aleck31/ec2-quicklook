@@ -10,23 +10,24 @@ class EC2Client(object):
     def __init__(self, boto3_client):
         self._boto3_client = boto3_client
 
-    def get_usage_operations(self):
+    def list_usage_operations(self):
         list = load_json_config('ec2_operation')
         return list
 
-    def get_instance_family(self):
+    def list_instance_family(self, architecture):
         list = load_json_config('ec2_instance')
         familyList = []
         for f in list:
             for i in f['family']:
-                familyList.append(
-                    {
-                        'category': f['category'],
-                        'name': i['name'],
-                        'description': i['description'],
-                        'architecture': i['architecture']
-                    }
-                )
+                if i['architecture'] == architecture:
+                    familyList.append(
+                        {
+                            'category': f['category'],
+                            'name': i['name'],
+                            'description': i['description'],
+                            'architecture': i['architecture']
+                        }
+                    )
         # return list
         return familyList
 
