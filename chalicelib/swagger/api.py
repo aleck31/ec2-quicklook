@@ -1,8 +1,22 @@
 from chalice.app import Response
 from chalicelib.file import get_static_file
-from .utils import export_api_to_json
+from .utils import export_api_to_json, get_swagger_ui
 from . import bp, logger
 
+
+@bp.route("/docs", methods=["GET"])
+def get_doc():
+    """Get Swagger UI Main Page
+
+    Returns:
+        str: text/html for Swagger UI page
+    """
+    html = get_swagger_ui(bp.current_app)
+    return Response(
+        body=html, 
+        status_code=200,
+        headers={"Content-Type": "text/html"},
+    )
 
 
 @bp.route("/swagger/openapi", methods=["GET"])

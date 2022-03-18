@@ -12,7 +12,14 @@
         },
         {
             "Effect": "Allow",
-            "Action": ["apigateway:POST", "apigateway:GET"],
+            "Action": [
+                "apigateway:POST",
+                "apigateway:GET",                
+                "pricing:DescribeServices",
+                "pricing:GetAttributeValues",
+                "pricing:GetProducts",
+                "ec2:Describe*"
+            ],
             "Resource": "*"
         },
         {

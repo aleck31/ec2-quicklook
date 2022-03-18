@@ -1,7 +1,7 @@
 import boto3
 from chalice.app import Response, AuthResponse, BadRequestError, NotFoundError
 from chalicelib import auth, sdk
-from . import bp
+from . import bp, logger
 
 
 _PRICING_CLIENT = None
@@ -55,6 +55,7 @@ def get_product_instance():
             headers={"Content-Type": "application/json"}
         )
     except Exception as ex:
+        logger.error(f"Failed to get instance product info: Error: {ex}'")
         return ex
 
 
@@ -75,6 +76,7 @@ def get_product_volume():
             headers={"Content-Type": "application/json"}
         )
     except Exception as ex:
+        logger.error(f"Failed to get volume product info: Error: {ex}'")
         return ex        
 
 
@@ -111,4 +113,5 @@ def get_parm_list(res):
         )
     
     except Exception as ex:
+        logger.error(f"Failed to get instance '{res}: Error: {ex}'")
         return ex

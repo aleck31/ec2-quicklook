@@ -1,6 +1,10 @@
 import ast
 from chalicelib.utils import load_json_config
+import logging
 
+
+
+logger = logging.getLogger()
 
 INSTANCE_TYPE_URL = 'https://aws.amazon.com/cn/ec2/instance-types/'
 VOLUME_TYPE_URL = 'https://aws.amazon.com/cn/ebs/volume-types/'
@@ -30,7 +34,6 @@ class EC2Client(object):
                     )
         # return list
         return familyList
-
 
     #SDK: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html
     def get_instance_types(self, architecture, instance_family):
@@ -69,6 +72,7 @@ class EC2Client(object):
             return instypeList
 
         except Exception as ex:
+            logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
             return '%s: %s' %(self.__class__.__name__ ,ex)
 
 
@@ -101,6 +105,7 @@ class PricingClient(object):
                 'data':svcodeList
             }
         except Exception as ex:
+            logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
             return '%s: %s' %(self.__class__.__name__ ,ex)
 
         
@@ -116,6 +121,7 @@ class PricingClient(object):
                 'data':attrList
             }
         except Exception as ex:
+            logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
             return '%s: %s' %(self.__class__.__name__ ,ex)
 
 
@@ -142,6 +148,7 @@ class PricingClient(object):
                 'data':valueList
             }
         except Exception as ex:
+            logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
             return '%s: %s' %(self.__class__.__name__ ,ex)
 
 
@@ -246,6 +253,7 @@ class PricingClient(object):
             return prdInstance        
         
         except Exception as ex:
+            logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
             return '%s: %s' %(self.__class__.__name__ ,ex)
         
         
@@ -316,4 +324,5 @@ class PricingClient(object):
             return prdVolume 
 
         except Exception as ex:
+            logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
             return '%s: %s' %(self.__class__.__name__ ,ex)

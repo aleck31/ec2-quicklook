@@ -1,142 +1,325 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>EC2 QuickLook</title>
-    <link rel="stylesheet" href="css/main">
-    <!-- <link rel="stylesheet" href="/css/bootstrap"> -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.1/css/all.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     
+    <!-- Bootstrap CSS stylesheet -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+    <!-- Custom styles for this template -->
+    <link rel="stylesheet" href="css/custom">
+    
+    <title>EC2 QuickLook</title>
   </head>
 
-  <body>
+  <body class="bg-light">
     <div class="container-fluid">
-      <div class="row">
-        <div class="col-12" id="navigation-bar">
-          <div class="row">
-            <div class="col-1" id="logo">
-              <a href=".">
-                  <img src="favicon.ico" alt="logo" style="height: 42px;">
-              </a>
-            </div>
-            <div class="col-2" id="logo-title">
-              <p> EC2 QuickLook</p>
-            </div>            
-            <div class="col-9" id="nav-links">
-              <a href="docs">
-                <p>API Docs</p>
-              </a>
-            </div>
-          </div>
+      <nav class="row" id="navigation-bar">
+        <div class="col-1" id="logo">
+          <a href=".">
+              <img src="favicon.ico" alt="logo" style="height: 42px;">
+          </a>
         </div>
-      </div>
+        <div class="col-9" id="logo-title">
+          <p> EC2 QuickLook</p>
+        </div>            
+        <div class="col-2" id="nav-links">
+          <a href="docs">
+            <p>API Docs</p>
+          </a>
+        </div>       
+      </nav>
 
-      <div class="row" id="main-page">
+      <main role="main" class="row" id="main-content">
 
-        <div class="col-1" id="sidebar">          
-          <p class="text-center">{{ sidebar.version }}</p>
+        <div class="col-md-1" id="sidebar">
           <p class="text-center">Version</p>
+          <p class="text-center">{{ sidebar.version }}</p>
           <p class="text-center">{{ sidebar.title }}</p>
         </div>
 
-        <div class="col-11" id="container">
-
-        <form action="/" class="form-text" method="GET">
-          <!-- serach conditions -->
-          <div class="row" id="search">
-            <div class="col-10" id="condition">
-              <span>Region:</span>
-              <select>
-                {% for l in region_list %}
-                  <option value="{{ l }}">{{ l }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-1" id="button">
-              <button class="btn btn-success text-center" type="submit" name="button">
-                QuickLook
-              </button>   
-            </div>    
-           </div>
-
-          <div class="row" id="search">
-            <div class="col-10" id="condition">
-              <span>Architecture:</span>
-              <select>
-                <option value="x86_64">x86_64</option>
-                <option value="arm64">arm64</option>
-              </select>
-              <span>Instance Family:</span>
-              <select>
-                {% for l in family_list %}
-                  <option value="{{ l.name }}">{{ '%s: %s' %(l.name,l.description) }}</option>
-                {% endfor %}
-              </select>
-              <span>Instance Type:</span>
-              <select>
-                {% for l in types_list %}
-                  <option value="{{ l.instanceType }}">{{ l.instanceType }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>              
-          <div class="row" id="search">
-            <div class="col-10" id="condition">
-              <span>Operation:</span>
-              <select>
-                {% for l in operation_list %}
-                  <option value="{{ l.operation }}">{{ l.platform }}</option>
-                {% endfor %}
-              </select>             
-            </div>
-          </div>
-        </form>
-
-
-          <!-- product detail -->
-          <div class="row" id="product">
-            <div class="tabbable" id="tabs-109440">
-              <ul class="nav nav-tabs">
-                <li class="nav-item">
-                  <a class="nav-link active show" href="#tab1" data-toggle="tab">Section 1</a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="#tab2" data-toggle="tab">Section 2</a>
-                </li>
-              </ul>
-              <div class="tab-content">
-                <div class="tab-pane active" id="panel-248668">
-                  <p>
-                    I'm in Section 1.
-                  </p>
-                  <div class="form-group">
-                    <label>
-                        Title
-                        <input type="text" name="title" value="">
-                      </label>
+        <div class="col-md-11" id="contents">
+          <form action="product/instance" class="needs-validation was-validated" novalidate="" method="GET"></form>
+          <div class="row">
+            <!-- serach conditions -->
+            <div class="col-md-8 mb-4">
+              <div class="row">
+                <div class="col-md-3 mb-2">
+                  <label for="region">Region</label>
+                  <select class="custom-select d-block w-100" id="region" required="">
+                    <option value="">Choose...</option>
+                    {% for l in region_list %}
+                    <option value="{{ l }}">{{ l }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="invalid-feedback">
+                    Please select a valid Region.
                   </div>
                 </div>
-                <div class="tab-pane" id="tab2">
-                  <p>
-                    Howdy, I'm in Section 2.Howdy, I'm in Section 2.Howdy, I'm in Section 2.Howdy, I'm in Section 2.
-                  </p>
-                  <div class="form-group">
-                    <textarea name="content" rows="15" style="resize: horizontal;"></textarea>                   
+                <div class="col-md-3 mb-2">
+                  <label for="arch">Architecture</label>
+                  <select class="custom-select d-block w-100" id="" required="">
+                    <option value="x86_64">x86_64</option>
+                    <option value="arm64">arm64</option>
+                  </select>
+                  <!-- <div class="d-block my-3">                
+                    <div class="d-block my-3">
+                      <div class="custom-control custom-radio">
+                        <input id="arch" name="x86_64" type="radio" class="custom-control-input" checked="" required="">
+                        <label class="custom-control-label" for="credit">x86_64</label>
+                      </div>
+                      <div class="custom-control custom-radio">
+                        <input id="arch" name="arm64" type="radio" class="custom-control-input" required="">
+                        <label class="custom-control-label" for="debit">arm64</label>
+                      </div>
+                    </div>
+                  </div> -->
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-3 mb-2">
+                  <label for="family">Instance Family</label>
+                  <select class="custom-select d-block w-100" id="family" required="">
+                    <option value="">Choose...</option>
+                    {% for l in family_list %}
+                    <option value="{{ l.name }}">{{ '%s: %s' %(l.name,l.description) }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="invalid-feedback">
+                    Please select a valid Instance Family.
+                  </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                  <label for="types">Instance Type</label>
+                  <select class="custom-select d-block w-100" id="types" required="">
+                    <option value="">Choose...</option>
+                    {% for l in types_list %}
+                      <option value="{{ l.instanceType }}">{{ l.instanceType }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="invalid-feedback">
+                    Please select a valid Instance Type.
+                  </div>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label for="operation">Operation System</label>
+                  <select class="custom-select d-block w-100" id="operation" required="">
+                    <option value="">Choose...</option>
+                    {% for l in operation_list %}
+                      <option value="{{ l.operation }}">{{ l.platform }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="invalid-feedback">
+                    Please select a valid Operation System.
                   </div>
                 </div>
               </div>
             </div>
+
+            <!-- search button -->
+            <div class="col-md-4 mb-2">
+              <div class="row" style="display: table-cell;">
+                <button class="btn btn-success text-center" type="submit" >
+                  QuickLook
+                </button>
+              </div> 
+            </div>
+          </div>
+          </form>
+          <hr class="mb-4">
+
+          <!-- product detail -->
+          <div class="row" id="instance">
+            <div class="col-md-6 mb-3">
+              <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Attribute</th>
+                      <th>Value</th>
+                      <th>Categorize</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>01</td>
+                      <td>instanceFamily</td>
+                      <td>Compute optimized</td>
+                      <td>basic</td>                      
+                    </tr>
+                    <tr>
+                      <td>02</td>
+                      <td>instanceType</td>
+                      <td>c4.2xlarge</td>
+                      <td>basic</td>
+                    </tr>
+                    <tr>
+                      <td>03</td>
+                      <td>currentGeneration</td>
+                      <td>Yes</td>
+                      <td>basic</td>
+                    </tr>
+                    <tr>
+                      <td>04</td>
+                      <td>physicalProcessor</td>
+                      <td>Intel Xeon E5-2666 v3 (Haswell)</td>
+                      <td>config</td>
+                    <tr>
+                      <td>05</td>
+                      <td>processorArchitecture</td>
+                      <td>64-bit</td>
+                      <td>config</td>
+                    </tr>
+                    <tr>
+                      <td>06</td>
+                      <td>vcpu</td>
+                      <td>8</td>
+                      <td>config</td>
+                    </tr>
+                    <tr>
+                      <td>07</td>
+                      <td>memory</td>
+                      <td>15 GiB</td>
+                      <td>config</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Attribute</th>
+                      <th>Value</th>
+                      <th>Categorize</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>01</td>
+                      <td>location</td>
+                      <td>China (Beijing)</td>
+                      <td>basic</td>                      
+                    </tr>
+                    <tr>
+                      <td>02</td>
+                      <td>regionCode</td>
+                      <td>cn-north-1</td>
+                      <td>basic</td>
+                    </tr>
+                    <tr>
+                      <td>03</td>
+                      <td>currentGeneration</td>
+                      <td>Yes</td>
+                      <td>basic</td>
+                    </tr>
+                    <tr>
+                      <td>04</td>
+                      <td>networkPerformance</td>
+                      <td>High</td>
+                      <td>network</td>
+                    <tr>
+                      <td>05</td>
+                      <td>dedicatedEbsThroughput</td>
+                      <td>1000 Mbps</td>
+                      <td>storage</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>            
+            </div>
+          </div>
+
+          <hr class="mb-4">
+          <div class="row" id="volume">         
+            <div class="col-md-6 mb-3">
+              <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Attribute</th>
+                      <th>Value</th>
+                      <th>Categorize</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>01</td>
+                      <td>storage</td>
+                      <td>EBS only</td>
+                      <td>storage</td>
+                    </tr>
+                    <tr>
+                      <td>02</td>
+                      <td>volumeApiName</td>
+                      <td>gp3</td>
+                      <td>storage</td>
+                    </tr>
+                    <tr>
+                      <td>03</td>
+                      <td>volumeSize</td>
+                      <td>20 GiB</td>
+                      <td>storage</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>  
+            <div class="col-md-6 mb-3">
+              <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Attribute</th>
+                      <th>Value</th>
+                      <th>Categorize</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>01</td>
+                      <td>maxIopsvolume</td>
+                      <td>16000</td>
+                      <td>storage</td>
+                      
+                    </tr>
+                    <tr>
+                      <td>02</td>
+                      <td>maxThroughputvolume</td>
+                      <td>1000 MiB/s</td>
+                      <td>storage</td>
+                      
+                    </tr>
+                    <tr>
+                      <td>03</td>
+                      <td>maxVolumeSize</td>
+                      <td>16 TiB</td>
+                      <td>storage</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
 
         </div>
-      </div>
+        
+      </main>
       
     </div>
-    <!-- <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script> -->
-    <script src="js/jquery"></script>
+
+    <!-- <script src="js/jquery"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
     <!-- <script src="/js/bootstrap"></script> -->
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js"></script>
-    <script src="js/main"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"></script>
+    <script src="js/custom"></script>
   </body>
 </html>

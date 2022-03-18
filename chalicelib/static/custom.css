@@ -24,50 +24,61 @@
 
 #navigation-bar #logo-title {
   padding: 10px 0;
-  margin-bottom: 0;
+  margin-top: 5px;
   display: inline-block;
   /* font-family: 'Gaegu', sans-serif; */
 }
 
-#navigation-bar #nav-links p {
-  float: right;
+#navigation-bar #nav-links {
   padding: 10px 0;
-  margin-bottom: 0;
+  margin-top: 20px;
   display: inline-block;
-  position: absolute;
-  right: 15px;
-  top: 50%;
+}
+  
+#navigation-bar #nav-links p{
+  font-size: 0.6em;
+  font-style: italic;
+  color: white;  
+  float: right;
   transform: translate(-50%, -50%);
-  color: white; 
+  /* right: 15px;
+  position: absolute; */
 }
 
-#main-page #sidebar {
+#main-content #sidebar {
   background: #5d5d5d;
-  height: 100vh;
+  /* height: 100vh; */
   padding: 15px;
   color: white;
   text-decoration: none;
 }
 
-#main-page #container {
+#main-content #contents {
   height: 100vh;
   padding: 15px;
   position: relative;
 }
 
-#main-page #container #search {
+#main-content #contents #search {
   height: 7vh;
   padding: 10px 15px;
   position: relative;
 }
-#main-page #container #product {
+#main-content #contents #product {
   height: 10vh;
   padding: 15px;
   position: relative;
 }
 
-#main-page #container .date {
+#main-content #contents .date {
   line-height: 2;
   margin-bottom: 30px;
   border-bottom: 1px solid black;
 }
+
+/* form-validation */
+.container {
+  max-width: 960px;
+}
+
+.lh-condensed { line-height: 1.25; }
