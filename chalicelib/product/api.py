@@ -49,7 +49,7 @@ def get_product_instance():
             region = query.get('region'), 
             instance_type = query.get('type'), 
             operation = query.get('op')
-        )        
+        )
         return Response(
             body=resp,
             headers={"Content-Type": "application/json"}

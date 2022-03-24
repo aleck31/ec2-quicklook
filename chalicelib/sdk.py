@@ -73,8 +73,8 @@ class EC2Client(object):
 
         except Exception as ex:
             logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
-            return '%s: %s' %(self.__class__.__name__ ,ex)
-
+            return { self.__class__.__name__ : str(ex) }
+            
 
 
 class PricingClient(object):
@@ -106,7 +106,7 @@ class PricingClient(object):
             }
         except Exception as ex:
             logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
-            return '%s: %s' %(self.__class__.__name__ ,ex)
+            return { self.__class__.__name__ : str(ex) }
 
         
     def get_service_attributes(self, service_code = 'AmazonEC2'):
@@ -122,7 +122,7 @@ class PricingClient(object):
             }
         except Exception as ex:
             logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
-            return '%s: %s' %(self.__class__.__name__ ,ex)
+            return { self.__class__.__name__ : str(ex) }
 
 
     def get_attribute_values(self, service_code = 'AmazonEC2', attribute_name = 'instanceType'):
@@ -149,7 +149,7 @@ class PricingClient(object):
             }
         except Exception as ex:
             logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
-            return '%s: %s' %(self.__class__.__name__ ,ex)
+            return { self.__class__.__name__ : str(ex) }
 
 
     def get_product_instance(self, region, instance_type, operation, 
@@ -175,7 +175,7 @@ class PricingClient(object):
             )
             # 如果返回条目不唯一则说明给的参数值异常
             if len(result.get('PriceList')) != 1:
-                raise ValueError('Unmatched parameters')
+                raise ValueError('Unmatched parameter values')
             
             # 通过 ast.literal_eval()函数 将字符串转为字典
             resultDict = ast.literal_eval(result['PriceList'][0])
@@ -254,7 +254,7 @@ class PricingClient(object):
         
         except Exception as ex:
             logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
-            return '%s: %s' %(self.__class__.__name__ ,ex)
+            return { self.__class__.__name__ : str(ex) }
         
         
         
@@ -325,4 +325,4 @@ class PricingClient(object):
 
         except Exception as ex:
             logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
-            return '%s: %s' %(self.__class__.__name__ ,ex)
+            return { self.__class__.__name__ : str(ex) }

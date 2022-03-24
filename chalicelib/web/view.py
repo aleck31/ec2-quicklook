@@ -1,18 +1,16 @@
 import os
 import jinja2
+import json
 import boto3
 from chalice.app import Response
 from chalicelib import auth, sdk, file
+from chalicelib.utils import build_api_endpoint
 from . import bp, logger
 
-
+version = 'v0.7'
 
 _EC2_CLIENT = None
-
-def render(templ_path, context):
-    path, filename = os.path.split(templ_path)
-    return jinja2.Environment(loader=jinja2.FileSystemLoader(path or "./")).get_template(filename).render(context)
-
+_PRICE_CLIENT = None
 
 def get_ec2_client(region = 'us-east-1'):
     global _EC2_CLIENT
@@ -22,6 +20,17 @@ def get_ec2_client(region = 'us-east-1'):
         )
     return _EC2_CLIENT
 
+def get_price_client(region = 'us-east-1'):
+    global _PRICE_CLIENT
+    if _PRICE_CLIENT is None:
+        _PRICE_CLIENT = sdk.PricingClient(
+            boto3.client('pricing', region_name=region)
+        )
+    return _PRICE_CLIENT
+
+def render(templ_path, context):
+    path, filename = os.path.split(templ_path)
+    return jinja2.Environment(loader=jinja2.FileSystemLoader(path or "./")).get_template(filename).render(context)
 
 def list_ec2_regions():
     aws_regions = boto3._get_default_session().get_available_regions('ec2')
@@ -33,42 +42,74 @@ def list_ec2_regions():
 @bp.route('/', methods=['GET'])
 def index():
     """ec2-quicklook homepage"""
-    curr_ver = 'v0.6'
+    #set default region: us-east-1
+    query = bp.current_request.query_params
+    if not query:
+        region = 'us-east-1'
+    else:
+        region = query.get('region')
+
+    
     sidebar = {
-        'title':bp.current_app.app_name,
-        "version": curr_ver,
+        # 'title':bp.current_app.app_name,
+        "curr_ver": version,
     }
     region_list = list_ec2_regions()
 
-    client = get_ec2_client()
+    client = get_ec2_client(region)
     operation_list = client.list_usage_operations()
+    
+    #set default architecture: x86_64
     family_list = client.list_instance_family(
-        architecture = 'arm64', 
-    )
+        # architecture = 'arm64', 
+        architecture = 'x86_64', 
+    )    
+    #set default architecture: x86_64
     types_list = client.get_instance_types(
         architecture = 'x86_64', 
-        instance_family = 'm4'
+        instance_family = 'm5'
     )
-    product = {
-        "title": 'demodemo',        
-        "content": curr_ver,
-        "create_date": ""
+
+    pclient = get_price_client()
+    voltype_list = pclient.get_attribute_values(service_code='AmazonEC2',attribute_name='volumeApiName').get('data')
+
+    # gen blank data
+    instance = {
+        "productMeta": {},
+        "hardwareSpecs": {},
+        "softwareSpecs": {},
+        "productFeature": {},
+        "instanceSotrage": {},
+        "listPrice": { "pricePerUnit": {}, }
+    }
+    volume = {
+        "productMeta": {},
+        "productSpecs": {},
+        "listPrice": { "pricePerUnit": {}, }
     }
 
+    #aip docs url
+    apiDocsUrl = build_api_endpoint(
+        current_request=bp.current_app.current_request, 
+        request_path="api/docs"
+    )
+
+    # send to front-end
     context = {
         'sidebar': sidebar,
         'region_list':region_list,
         'family_list':family_list,
         'types_list':types_list,
+        'voltype_list':voltype_list,
         'operation_list' : operation_list, 
-        'product': product,       
+        'instance': instance,
+        'volume' : volume,
+        'apiDocsUrl':apiDocsUrl
     }
 
-    html = render('chalicelib/web/template.html', context)
-
     return Response(
-        body=html, 
-        status_code=200, 
+        body = render('chalicelib/web/template.html', context),
+        status_code = 200, 
         headers={"Content-Type": "text/html"}
     )    
 

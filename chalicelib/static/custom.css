@@ -48,13 +48,13 @@
 #main-content #sidebar {
   background: #5d5d5d;
   /* height: 100vh; */
-  padding: 15px;
+  padding: 15px 10px 0px 10px;
   color: white;
   text-decoration: none;
 }
 
 #main-content #contents {
-  height: 100vh;
+  min-height: 95vh;
   padding: 15px;
   position: relative;
 }

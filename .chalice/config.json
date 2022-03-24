@@ -1,25 +1,27 @@
 {
-  "version": "1.0",
+  "version": "0.7",
   "app_name": "ec2-quicklook",
   "stages": {
     "dev": {
-      "api_gateway_stage": "api",
+      "api_gateway_stage": "dev",
       "autogen_policy": false,
       "environment_variables": {
         "USERS_TABLE_NAME": "users-jwt-799b4fa4-8117-46df-9444-dacd8add3673",
         "ENV_LOG_LEVEL": "INFO"
       }
     },
-    "qa": {
-      "api_gateway_stage": "qa",
+    "test": {
+      "api_gateway_stage": "test",
       "autogen_policy": true,
       "environment_variables": {
+        "USERS_TABLE_NAME": "users-jwt-799b4fa4-8117-46df-9444-dacd8add3673",
         "ENV_LOG_LEVEL": "ERROR"
       }
     },
     "prod": {
-      "api_gateway_stage": "pd",
+      "api_gateway_stage": "prod",
       "environment_variables": {
+        "USERS_TABLE_NAME": "users-jwt-799b4fa4-8117-46df-9444-dacd8add3673",
         "ENV_LOG_LEVEL": "ERROR"
       }
     }

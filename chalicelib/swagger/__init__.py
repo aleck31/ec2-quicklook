@@ -7,4 +7,4 @@ bp = Blueprint(__name__)
 # Get logger
 logger = logging.getLogger()
 
-from . import api
+from . import view

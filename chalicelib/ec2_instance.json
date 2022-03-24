@@ -17,7 +17,6 @@
                 {"name":"m5ad", "description":"通用实例-AMD", "architecture":"x86_64"},
                 {"name":"m5n", "description":"通用实例", "architecture":"x86_64"},
                 {"name":"m5zn", "description":"通用实例", "architecture":"x86_64"},
-                {"name":"m6", "description":"通用实例", "architecture":"x86_64"},
                 {"name":"m6i", "description":"通用实例", "architecture":"x86_64"},
                 {"name":"m6a", "description":"通用实例-AMD", "architecture":"x86_64"},
                 {"name":"t4g", "description":"突增实例-ARM", "architecture":"arm64"},

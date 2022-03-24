@@ -21,10 +21,10 @@
           </a>
         </div>
         <div class="col-9" id="logo-title">
-          <p> EC2 QuickLook</p>
+          <p>EC2 QuickLook</p>
         </div>            
         <div class="col-2" id="nav-links">
-          <a href="docs">
+          <a href="{{ apiDocsUrl }}" target="_blank">
             <p>API Docs</p>
           </a>
         </div>       
@@ -33,280 +33,280 @@
       <main role="main" class="row" id="main-content">
 
         <div class="col-md-1" id="sidebar">
-          <p class="text-center">Version</p>
-          <p class="text-center">{{ sidebar.version }}</p>
-          <p class="text-center">{{ sidebar.title }}</p>
+          <div class="row">
+            <div class="col-6 mb-1">
+              <p class="text-right">Version:</p>
+              <!-- <p class="text-center">{{ sidebar.title }}</p> -->
+            </div>
+            <div class="col-6 mb-1">
+              <p class="text-left">{{ sidebar.curr_ver }}</p>
+            </div>
+          </div>          
         </div>
 
         <div class="col-md-11" id="contents">
-          <form action="product/instance" class="needs-validation was-validated" novalidate="" method="GET"></form>
-          <div class="row">
+          <!-- <form action="#" class="needs-validation was-validated" novalidate="" method="GET"> -->
+          <form class="needs-validation was-validated" novalidate="">
             <!-- serach conditions -->
-            <div class="col-md-8 mb-4">
-              <div class="row">
-                <div class="col-md-3 mb-2">
-                  <label for="region">Region</label>
-                  <select class="custom-select d-block w-100" id="region" required="">
-                    <option value="">Choose...</option>
-                    {% for l in region_list %}
-                    <option value="{{ l }}">{{ l }}</option>
-                    {% endfor %}
-                  </select>
-                  <div class="invalid-feedback">
-                    Please select a valid Region.
-                  </div>
-                </div>
-                <div class="col-md-3 mb-2">
-                  <label for="arch">Architecture</label>
-                  <select class="custom-select d-block w-100" id="" required="">
-                    <option value="x86_64">x86_64</option>
-                    <option value="arm64">arm64</option>
-                  </select>
-                  <!-- <div class="d-block my-3">                
-                    <div class="d-block my-3">
-                      <div class="custom-control custom-radio">
-                        <input id="arch" name="x86_64" type="radio" class="custom-control-input" checked="" required="">
-                        <label class="custom-control-label" for="credit">x86_64</label>
-                      </div>
-                      <div class="custom-control custom-radio">
-                        <input id="arch" name="arm64" type="radio" class="custom-control-input" required="">
-                        <label class="custom-control-label" for="debit">arm64</label>
-                      </div>
-                    </div>
-                  </div> -->
+            <div class="row">
+              <div class="col-md-2 mb-2">
+                <label for="region">Region</label>
+                <select id="region" class="custom-select d-block w-100" required="">
+                  <option value="">Choose...</option>
+                  {% for region in region_list %}
+                    {% if region == 'us-east-1' %}
+                    <option selected value="{{ region }}">{{ region }}</option>
+                    {% else %}
+                    <option value="{{ region }}">{{ region }}</option>
+                    {% endif %}
+                  {% endfor %}
+                </select>
+                <div class="invalid-feedback">
+                  Please select a valid Region.
                 </div>
               </div>
-              <div class="row">
-                <div class="col-md-3 mb-2">
-                  <label for="family">Instance Family</label>
-                  <select class="custom-select d-block w-100" id="family" required="">
-                    <option value="">Choose...</option>
-                    {% for l in family_list %}
-                    <option value="{{ l.name }}">{{ '%s: %s' %(l.name,l.description) }}</option>
-                    {% endfor %}
-                  </select>
-                  <div class="invalid-feedback">
-                    Please select a valid Instance Family.
-                  </div>
-                </div>
-                <div class="col-md-3 mb-2">
-                  <label for="types">Instance Type</label>
-                  <select class="custom-select d-block w-100" id="types" required="">
-                    <option value="">Choose...</option>
-                    {% for l in types_list %}
-                      <option value="{{ l.instanceType }}">{{ l.instanceType }}</option>
-                    {% endfor %}
-                  </select>
-                  <div class="invalid-feedback">
-                    Please select a valid Instance Type.
-                  </div>
-                </div>
-                <div class="col-md-6 mb-2">
-                  <label for="operation">Operation System</label>
-                  <select class="custom-select d-block w-100" id="operation" required="">
-                    <option value="">Choose...</option>
-                    {% for l in operation_list %}
-                      <option value="{{ l.operation }}">{{ l.platform }}</option>
-                    {% endfor %}
-                  </select>
-                  <div class="invalid-feedback">
-                    Please select a valid Operation System.
-                  </div>
+              <div class="col-md-2 mb-2">
+                <label for="arch">Architecture</label>
+                <select id="arch" class="custom-select d-block w-100" required="">
+                  <option value="">Choose...</option>
+                  <option selected value="x86_64">x86_64</option>
+                  <option value="arm64">arm64</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-2">
+                <label for="operation">Operation System</label>
+                <select id="operation" class="custom-select d-block w-100" required="">
+                  <option value="">Choose...</option>
+                  {% for op in operation_list %}
+                    {% if op.platform == 'Ubuntu' %}
+                    <option selected value="{{ op.operation }}">{{ op.platform }}</option>
+                    {% else %}
+                    <option value="{{ op.operation }}">{{ op.platform }}</option>
+                    {% endif %}
+                {% endfor %}
+                </select>
+                <div class="invalid-feedback">
+                  Please select a valid Operation System.
                 </div>
               </div>
             </div>
 
-            <!-- search button -->
-            <div class="col-md-4 mb-2">
-              <div class="row" style="display: table-cell;">
-                <button class="btn btn-success text-center" type="submit" >
-                  QuickLook
-                </button>
-              </div> 
+            <div class="row">
+              <div class="col-md-2 mb-2">
+                <label for="family">Instance Family</label>
+                <select id="family" class="custom-select d-block w-100" required="">
+                  <option value="">Choose...</option>
+                  {% for l in family_list %}
+                    {% if l.name == 'm5' %}
+                    <option selected value="{{ l.name }}">{{ '%s: %s' %(l.description,l.name) }}</option>
+                    {% else %}
+                    <option value="{{ l.name }}">{{ '%s: %s' %(l.description,l.name) }}</option>
+                    {% endif %}
+                  {% endfor %}
+                </select>
+                <div class="invalid-feedback">
+                  Please select a valid Instance Family.
+                </div>
+              </div>
+              <div class="col-md-2 mb-2">
+                <label for="types">Instance Type</label>
+                <select id="types" class="custom-select d-block w-100" required="">
+                  <option value="">Choose...</option>
+                  {% for l in types_list %}
+                    <option value="{{ l.instanceType }}">{{ l.instanceType }}</option>
+                  {% endfor %}
+                </select>
+                <div class="invalid-feedback">
+                  Please select a valid Instance Type.
+                </div>
+              </div>
+              <div class="col-md-2 mb-2">
+                <label for="voltypes">Volume Type</label>
+                <select id="voltypes" class="custom-select d-block w-100" required="">
+                  <option value="">Choose...</option>
+                  {% for vt in voltype_list %}
+                    {% if vt == 'gp3' %}
+                    <option selected value="{{ vt }}">{{ vt }}</option>
+                    {% else %}
+                    <option value="{{ vt }}">{{ vt }}</option>
+                    {% endif %}
+                  {% endfor %}
+                </select>
+                <div class="invalid-feedback">
+                  Please select a valid Volume Type.
+                </div>
+              </div>
+              <div class="col-md-1 mb-2">
+                <label for="volsize">Disk Size (GiB)</label>
+                <!-- <div class="input-group">
+                  <input id="volsize" type="text" class="form-control" placeholder=""  required="">
+                  <span class="input-group-btn"></span>
+                    <button class="btn btn-default" type="button">-</button>
+                    <button class="btn btn-default" type="button">+</button>
+                  </span>
+                </div> -->
+                <input id="volsize" type="text" class="form-control" placeholder=""  required="">
+                <div class="invalid-feedback">
+                  Volume size required.
+                </div>
+              </div>
+              <!-- Query button -->
+              <div class="col-md-4 mb-2">
+                <input id="btnquery" class="btn btn-success text-center" value='QuickLook' type="button" onclick="" >
+                <!-- <button class="btn btn-success text-center" type="submit">QuickLook</button> -->
+              </div>
             </div>
-          </div>
           </form>
           <hr class="mb-4">
 
-          <!-- product detail -->
+          <!-- price detail -->
+          <div class="row">
+            <div class="col-md-3 mb-2">
+              <div class="card mb-4 box-shadow">
+                <div class="card-header">
+                  <h4 class="my-0 font-weight-normal">Instance</h4>
+                </div>
+                <div class="card-body">
+                  <h1 class="card-title pricing-card-title"><span id="insprice">{{instance.get('listPrice').pricePerUnit.currency}} {{instance.get('listPrice').pricePerUnit.value}} </span><small class="text-muted">/ <span id="insunit">{{instance.get('listPrice').unit}}</span></small></h1>
+                  <ul class="list-unstyled mt-3 mb-1">
+                    <small>effective since: <span id="insdate">{{instance.get('listPrice').effectiveDate}}</span></small>
+                    <hr class="my-2">
+                    <li><span id="insfamily">{{instance.get('productMeta').instanceFamily}}</span></li>
+                    <li>tenancy: <span id="instenan">{{instance.get('productMeta').tenancy}}</span></li>
+                    <li>current generation: <span id="insgen">{{instance.get('productMeta').currentGeneration}}</span></li>             
+                    <li><a id="insurl" href="{{instance.get('productMeta').introduceUrl}}" target="_blank">Learn more »</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 mb-2">
+              <div class="card mb-4 box-shadow">
+                <div class="card-header">
+                  <h4 class="my-0 font-weight-normal">Volume</h4>
+                </div>
+                <div class="card-body">
+                  <h1 class="card-title pricing-card-title"><span id="volprice">{{volume.get('listPrice').pricePerUnit.currency}} {{volume.get('listPrice').pricePerUnit.value}} </span><small class="text-muted">/ <span id="volunit">{{volume.get('listPrice').unit}}</span></small></h1>
+                  <ul class="list-unstyled mt-3 mb-1">
+                    <small>effective since: <span id="voldate">{{volume.get('listPrice').effectiveDate}}</span></small>
+                    <hr class="my-2">
+                    <li><span id="voltype">{{volume.get('productMeta').volumeType}}</span></li>
+                    <li>usage type: <span id="usagetype">{{volume.get('productMeta').usagetype}}</span></li>
+                    <li>storage media: <span id="volmedia">{{volume.get('productMeta').storageMedia}}</span></li>               
+                    <li><a id="volurl" href="{{volume.get('productMeta').introduceUrl}}" target="_blank">Learn more »</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- instance detail -->
           <div class="row" id="instance">
-            <div class="col-md-6 mb-3">
+            <div class="col-md-4 mb-2">
               <div class="table-responsive">
                 <table class="table table-striped table-sm">
-                  <thead>
+                  <thead class="thead-dark">
                     <tr>
-                      <th>#</th>
-                      <th>Attribute</th>
-                      <th>Value</th>
-                      <th>Categorize</th>
+                      <th width="40%">Hardware</th>
+                      <th width="60%">Value</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody id="tbhardware">
+                    {% for k,v in instance.get('hardwareSpecs').items() %}
                     <tr>
-                      <td>01</td>
-                      <td>instanceFamily</td>
-                      <td>Compute optimized</td>
-                      <td>basic</td>                      
+                      <td>{{k}}</td>
+                      <td>{{v}}</td>
                     </tr>
-                    <tr>
-                      <td>02</td>
-                      <td>instanceType</td>
-                      <td>c4.2xlarge</td>
-                      <td>basic</td>
-                    </tr>
-                    <tr>
-                      <td>03</td>
-                      <td>currentGeneration</td>
-                      <td>Yes</td>
-                      <td>basic</td>
-                    </tr>
-                    <tr>
-                      <td>04</td>
-                      <td>physicalProcessor</td>
-                      <td>Intel Xeon E5-2666 v3 (Haswell)</td>
-                      <td>config</td>
-                    <tr>
-                      <td>05</td>
-                      <td>processorArchitecture</td>
-                      <td>64-bit</td>
-                      <td>config</td>
-                    </tr>
-                    <tr>
-                      <td>06</td>
-                      <td>vcpu</td>
-                      <td>8</td>
-                      <td>config</td>
-                    </tr>
-                    <tr>
-                      <td>07</td>
-                      <td>memory</td>
-                      <td>15 GiB</td>
-                      <td>config</td>
-                    </tr>
-                  </tbody>
+                    {% endfor %}
+                  </tbody>                  
                 </table>
               </div>
             </div>
 
-            <div class="col-md-6 mb-3">
+            <div class="col-md-4 mb-2">
               <div class="table-responsive">
                 <table class="table table-striped table-sm">
-                  <thead>
+                  <thead class="thead-dark">
                     <tr>
-                      <th>#</th>
-                      <th>Attribute</th>
-                      <th>Value</th>
-                      <th>Categorize</th>
+                      <th width="40%">Software</th>
+                      <th width="60%">Value</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody id="tbsoftware">
+                    {% for k,v in instance.get('softwareSpecs').items() %}
                     <tr>
-                      <td>01</td>
-                      <td>location</td>
-                      <td>China (Beijing)</td>
-                      <td>basic</td>                      
+                      <td>{{k}}</td>
+                      <td>{{v}}</td>
                     </tr>
-                    <tr>
-                      <td>02</td>
-                      <td>regionCode</td>
-                      <td>cn-north-1</td>
-                      <td>basic</td>
-                    </tr>
-                    <tr>
-                      <td>03</td>
-                      <td>currentGeneration</td>
-                      <td>Yes</td>
-                      <td>basic</td>
-                    </tr>
-                    <tr>
-                      <td>04</td>
-                      <td>networkPerformance</td>
-                      <td>High</td>
-                      <td>network</td>
-                    <tr>
-                      <td>05</td>
-                      <td>dedicatedEbsThroughput</td>
-                      <td>1000 Mbps</td>
-                      <td>storage</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>            
+                    {% endfor %}
+                  </tbody>                  
+                </table> 
+              </div>
             </div>
-          </div>
-
-          <hr class="mb-4">
-          <div class="row" id="volume">         
-            <div class="col-md-6 mb-3">
+            
+            <div class="col-md-4 mb-2">
               <div class="table-responsive">
                 <table class="table table-striped table-sm">
-                  <thead>
+                  <thead class="thead-dark">
                     <tr>
-                      <th>#</th>
-                      <th>Attribute</th>
-                      <th>Value</th>
-                      <th>Categorize</th>
+                      <th width="40%">Features</th>
+                      <th width="60%">Value</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody id="tbfeature">
+                    {% for k,v in instance.get('productFeature').items() %}
                     <tr>
-                      <td>01</td>
-                      <td>storage</td>
-                      <td>EBS only</td>
-                      <td>storage</td>
+                      <td>{{k}}</td>
+                      <td>{{v}}</td>
                     </tr>
+                    {% endfor %}
+                  </tbody>                  
+                </table>
+              </div>
+            </div> 
+          </div>
+          <hr class="mb-4">
+
+          <!-- volume detail -->
+          <div class="row">
+            <div class="col-md-4 mb-2">
+              <table class="table table-striped table-sm">
+                <thead class="thead-dark">
+                  <tr>
+                    <th width="40%">InstanceSotrage</th>
+                    <th width="60%">Value</th>
+                  </tr>
+                </thead>
+                <tbody id="tbinstorage">
+                  {% for k,v in instance.get('instanceSotrage').items() %}
+                  <tr>
+                    <td>{{k}}</td>
+                    <td>{{v}}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>                  
+              </table> 
+            </div>
+
+            <div class="col-md-4 mb-2">
+              <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                  <thead class="thead-dark">
                     <tr>
-                      <td>02</td>
-                      <td>volumeApiName</td>
-                      <td>gp3</td>
-                      <td>storage</td>
+                      <th width="40%">EBS Volume</th>
+                      <th width="60%">Value</th>
                     </tr>
+                  </thead>
+                  <tbody id="tbvolspec">
+                    {% for k,v in volume.get('productSpecs').items() %}
                     <tr>
-                      <td>03</td>
-                      <td>volumeSize</td>
-                      <td>20 GiB</td>
-                      <td>storage</td>
+                      <td>{{k}}</td>
+                      <td>{{v}}</td>
                     </tr>
+                    {% endfor %}
                   </tbody>
                 </table>
               </div>
             </div>  
-            <div class="col-md-6 mb-3">
-              <div class="table-responsive">
-                <table class="table table-striped table-sm">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Attribute</th>
-                      <th>Value</th>
-                      <th>Categorize</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>01</td>
-                      <td>maxIopsvolume</td>
-                      <td>16000</td>
-                      <td>storage</td>
-                      
-                    </tr>
-                    <tr>
-                      <td>02</td>
-                      <td>maxThroughputvolume</td>
-                      <td>1000 MiB/s</td>
-                      <td>storage</td>
-                      
-                    </tr>
-                    <tr>
-                      <td>03</td>
-                      <td>maxVolumeSize</td>
-                      <td>16 TiB</td>
-                      <td>storage</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
 
           </div>
 
@@ -317,9 +317,11 @@
     </div>
 
     <!-- <script src="js/jquery"></script> -->
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
     <!-- <script src="/js/bootstrap"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"></script>
     <script src="js/custom"></script>
+
   </body>
 </html>

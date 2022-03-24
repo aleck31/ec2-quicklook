@@ -4,7 +4,7 @@ from .utils import export_api_to_json, get_swagger_ui
 from . import bp, logger
 
 
-@bp.route("/docs", methods=["GET"])
+@bp.route("/api/docs", methods=["GET"])
 def get_doc():
     """Get Swagger UI Main Page
 
@@ -19,7 +19,7 @@ def get_doc():
     )
 
 
-@bp.route("/swagger/openapi", methods=["GET"])
+@bp.route("/api/json", methods=["GET"])
 def get_api_jsonb():
     return export_api_to_json(bp.current_app)
 
