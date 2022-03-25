@@ -38,7 +38,7 @@
       function(result){
         var familyops='';
         $.each(result, function(i, item){
-          familyops+="<option value='"+item.name+"'>"+item.name+": "+item.description+"</option>";
+          familyops+="<option value='"+item.name+"'>"+item.description+": "+item.name+"</option>";
         });
         $("#family").html(familyops);
         //设置第一项选中
@@ -56,7 +56,7 @@
       function(result){
         var typeops='';
         $.each(result, function(i, item){
-          typeops+="<option value='"+item.instanceType+"'>"+result[i].instanceType+"</option>";
+          typeops+="<option value='"+result[i].instanceType+"'>"+result[i].instanceType+"</option>";
         });
         $("#types").html(typeops)
       });
@@ -71,7 +71,7 @@
       function(result){
         var typeops='';
         $.each(result, function(i, item){
-          typeops+="<option value='"+item.instanceType+"'>"+result[i].instanceType+"</option>";
+          typeops+="<option value='"+item.instanceType+"'>"+item.instanceType+"</option>";
         });
         $("#types").html(typeops)
       });
@@ -122,7 +122,7 @@ function queryInstance(){
     $("#insdate").html(result.listPrice.effectiveDate);
     $("#insfamily").html(result.productMeta.instanceFamily);
     $("#instenan").html(result.productMeta.tenancy);
-    $("#insgen").html(result.productMeta.currentGeneration);
+    $("#insloca").html(result.productMeta.location);
     $("#insurl").attr('href',result.productMeta.introduceUrl);
 
   });

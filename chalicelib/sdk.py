@@ -197,7 +197,7 @@ class PricingClient(object):
             }
             hardwareSpecs = {
                 'physicalProcessor': attrList['physicalProcessor'],
-                'clockSpeed': attrList['clockSpeed'],
+                'clockSpeed': attrList.get('clockSpeed'),
                 'processorArchitecture': attrList['processorArchitecture'],
                 'vcpu': attrList['vcpu'],
                 'memory': attrList['memory'],
@@ -220,8 +220,8 @@ class PricingClient(object):
                 'classicnetworkingsupport': attrList['classicnetworkingsupport'],
                 'intelAvx2Available': attrList['intelAvx2Available'],
                 'intelAvxAvailable': attrList['intelAvxAvailable'],
-                'processorFeatures': attrList['processorFeatures'],
-            }        
+                'processorFeatures': attrList.get('processorFeatures'),
+            }
             
             # 提取价格信息
             terms = next(iter(resultDict['terms'].get(option).values() ))

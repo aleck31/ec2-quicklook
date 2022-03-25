@@ -20,7 +20,7 @@ def get_ec2_client(region = 'us-east-1'):
         )
     return _EC2_CLIENT
 
-def get_price_client(region = 'us-east-1'):
+def get_price_client(region = 'ap-south-1'):
     global _PRICE_CLIENT
     if _PRICE_CLIENT is None:
         _PRICE_CLIENT = sdk.PricingClient(
@@ -42,13 +42,9 @@ def list_ec2_regions():
 @bp.route('/', methods=['GET'])
 def index():
     """ec2-quicklook homepage"""
-    #set default region: us-east-1
     query = bp.current_request.query_params
-    if not query:
-        region = 'us-east-1'
-    else:
-        region = query.get('region')
-
+    #set default region: us-east-1
+    region = 'us-east-1' if not query else query.get('region')
     
     sidebar = {
         # 'title':bp.current_app.app_name,
@@ -56,22 +52,28 @@ def index():
     }
     region_list = list_ec2_regions()
 
-    client = get_ec2_client(region)
-    operation_list = client.list_usage_operations()
+    eclient = get_ec2_client(region)
+    operation_list = eclient.list_usage_operations()
     
     #set default architecture: x86_64
-    family_list = client.list_instance_family(
+    family_list = eclient.list_instance_family(
         # architecture = 'arm64', 
         architecture = 'x86_64', 
     )    
     #set default architecture: x86_64
-    types_list = client.get_instance_types(
+    types_list = eclient.get_instance_types(
         architecture = 'x86_64', 
         instance_family = 'm5'
     )
 
     pclient = get_price_client()
     voltype_list = pclient.get_attribute_values(service_code='AmazonEC2',attribute_name='volumeApiName').get('data')
+
+    #aip docs url
+    apiDocsUrl = build_api_endpoint(
+        current_request=bp.current_app.current_request, 
+        request_path="api/docs"
+    )
 
     # gen blank data
     instance = {
@@ -80,19 +82,13 @@ def index():
         "softwareSpecs": {},
         "productFeature": {},
         "instanceSotrage": {},
-        "listPrice": { "pricePerUnit": {}, }
+        "listPrice": { "pricePerUnit": {'currency':"USD",}, }
     }
     volume = {
         "productMeta": {},
         "productSpecs": {},
-        "listPrice": { "pricePerUnit": {}, }
+        "listPrice": { "pricePerUnit": {'currency':"USD",}, }
     }
-
-    #aip docs url
-    apiDocsUrl = build_api_endpoint(
-        current_request=bp.current_app.current_request, 
-        request_path="api/docs"
-    )
 
     # send to front-end
     context = {

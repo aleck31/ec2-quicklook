@@ -44,8 +44,8 @@ def get_product_instance():
     if not query:
         raise BadRequestError('incorrect query parameter')
     try:
-        client = get_pricing_client() 
-        resp = client.get_product_instance(
+        pclient = get_pricing_client() 
+        resp = pclient.get_product_instance(
             region = query.get('region'), 
             instance_type = query.get('type'), 
             operation = query.get('op')
@@ -65,8 +65,8 @@ def get_product_volume():
     if not query:
         raise BadRequestError('incorrect query parameter')
     try:
-        client = get_pricing_client()
-        resp = client.get_product_volume(
+        pclient = get_pricing_client()
+        resp = pclient.get_product_volume(
             region = query.get('region'), 
             volume_type = query.get('type'), 
             volume_size = query.get('size')
@@ -83,22 +83,24 @@ def get_product_volume():
 @bp.route('/instance/{res}', methods=['GET'], cors=True)
 def get_parm_list(res):
     query = bp.current_request.query_params
-    try:        
-        client = get_ec2_client(
-            region = query.get('region')
-        )              
+    region = query.get('region')
+    #replace mainland region with HongKong region 
+    region = 'ap-east-1' if region in ['cn-north-1','cn-northwest-1'] else region
+
+    try:
+        eclient = get_ec2_client( region )         
         if res == 'types':             
-            resp = client.get_instance_types(
+            resp = eclient.get_instance_types(
                 architecture = query.get('arch'), 
                 instance_family = query.get('family')
             )           
         elif res == 'family':
-            list = client.list_instance_family(
+            list = eclient.list_instance_family(
                 architecture = query.get('arch')
             )
             resp = list
         elif res == 'operation':        
-            list = client.list_usage_operations()
+            list = eclient.list_usage_operations()
             resp = list 
                  
         else:
