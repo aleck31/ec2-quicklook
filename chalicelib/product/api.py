@@ -28,9 +28,16 @@ def get_pricing_client(region = 'ap-south-1'):
     return _PRICING_CLIENT
 
 
-def get_ec2_client(region = 'us-east-1'):
+def get_ec2_client( region = 'us-east-1'):
     global _EC2_CLIENT
+    #replace mainland region with AP-Seoul(311) region 
+    region = 'ap-northeast-2' if region in ['cn-north-1','cn-northwest-1'] else region
+
     if _EC2_CLIENT is None:
+        _EC2_CLIENT = sdk.EC2Client(
+            boto3.client('ec2', region_name=region)
+        )
+    elif _EC2_CLIENT.region != region:
         _EC2_CLIENT = sdk.EC2Client(
             boto3.client('ec2', region_name=region)
         )
@@ -83,12 +90,9 @@ def get_product_volume():
 @bp.route('/instance/{res}', methods=['GET'], cors=True)
 def get_parm_list(res):
     query = bp.current_request.query_params
-    region = query.get('region')
-    #replace mainland region with HongKong region 
-    region = 'ap-east-1' if region in ['cn-north-1','cn-northwest-1'] else region
 
     try:
-        eclient = get_ec2_client( region )         
+        eclient = get_ec2_client( query.get('region') )         
         if res == 'types':             
             resp = eclient.get_instance_types(
                 architecture = query.get('arch'), 

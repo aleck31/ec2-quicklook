@@ -13,6 +13,7 @@ VOLUME_TYPE_URL = 'https://aws.amazon.com/cn/ebs/volume-types/'
 class EC2Client(object):
     def __init__(self, boto3_client):
         self._boto3_client = boto3_client
+        self.region = boto3_client._client_config.region_name 
 
     def list_usage_operations(self):
         list = load_json_config('ec2_operation')
@@ -200,9 +201,10 @@ class PricingClient(object):
                 'clockSpeed': attrList.get('clockSpeed'),
                 'processorArchitecture': attrList['processorArchitecture'],
                 'vcpu': attrList['vcpu'],
-                'memory': attrList['memory'],
+                'memory': attrList['memory'],                
                 'dedicatedEbsThroughput': attrList['dedicatedEbsThroughput'],
                 'networkPerformance': attrList['networkPerformance'],
+                'gpu': attrList.get('gpu')
             }
             softwareSpecs = {
                 'operatingSystem': attrList['operatingSystem'],
