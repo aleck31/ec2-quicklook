@@ -75,7 +75,17 @@ def change_passwd(stage):
     item = table.get_item(Key={'username': username})['Item']
     encoded = _encode_password(password, salt=item['salt'].value)
     if hmac.compare_digest(encoded['hashed'], item['hashed'].value):
-        print("Password verified.")
+        new_passwd = getpass.getpass('New Password: ').strip()        
+        password_fields = _encode_password(new_passwd)
+        item = {
+            'username': username,
+            'hash': password_fields['hash'],
+            'salt': Binary(password_fields['salt']),
+            'rounds': password_fields['rounds'],
+            'hashed': Binary(password_fields['hashed']),
+        }
+        table.put_item(Item=item)
+        print("Password changed.")
     else:
         print("Password verification failed.")
 
@@ -88,7 +98,7 @@ def test_passwd(stage):
     item = table.get_item(Key={'username': username})['Item']
     encoded = _encode_password(password, salt=item['salt'].value)
     if hmac.compare_digest(encoded['hashed'], item['hashed'].value):
-        print("Password verified.")
+        print("Password verified OK.")
     else:
         print("Password verification failed.")
 

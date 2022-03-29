@@ -18,6 +18,7 @@
                 "pricing:DescribeServices",
                 "pricing:GetAttributeValues",
                 "pricing:GetProducts",
+                "secretsmanager:GetSecretValue",
                 "ec2:Describe*"
             ],
             "Resource": "*"

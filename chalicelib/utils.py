@@ -16,7 +16,7 @@ def load_json_config(config):
     file_name = config+'.json'
     with open(os.path.join('chalicelib', file_name), encoding='utf-8') as f:
         config = json.load(f)
-    return config['list']
+    return config['config']
 
 
 def load_env_var(env_var,stage='dev'):

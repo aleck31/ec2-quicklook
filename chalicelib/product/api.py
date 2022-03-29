@@ -1,6 +1,7 @@
 import boto3
+import ast
 from chalice.app import Response, AuthResponse, BadRequestError, NotFoundError
-from chalicelib import auth, sdk
+from chalicelib import auth, sdk, utils
 from . import bp, logger
 
 
@@ -28,24 +29,45 @@ def get_pricing_client(region = 'ap-south-1'):
     return _PRICING_CLIENT
 
 
+def get_secret_name():
+    '''load secret name from config'''
+    secretName = utils.load_env_var('SECRET_NAME')
+    return secretName
+
+
+def get_credentials():
+    '''get aws credentials(ak/sk) from AWS Secrets Manager'''
+    secretString = boto3.client('secretsmanager').get_secret_value(
+        SecretId='cn0952_ec2_describe'
+    ).get('SecretString')
+    return ast.literal_eval(secretString)
+
+
 def get_ec2_client( region = 'us-east-1'):
     global _EC2_CLIENT
-    #replace mainland region with AP-Seoul(311) region 
-    region = 'ap-northeast-2' if region in ['cn-north-1','cn-northwest-1'] else region
 
-    if _EC2_CLIENT is None:
-        _EC2_CLIENT = sdk.EC2Client(
-            boto3.client('ec2', region_name=region)
-        )
-    elif _EC2_CLIENT.region != region:
-        _EC2_CLIENT = sdk.EC2Client(
-            boto3.client('ec2', region_name=region)
-        )
+    if _EC2_CLIENT is not None and _EC2_CLIENT.region == region:
+        return _EC2_CLIENT
+    else:
+        if region in ['cn-north-1','cn-northwest-1']:
+            cnKeys = get_credentials()
+            _EC2_CLIENT = sdk.EC2Client(
+                boto3.client(
+                    'ec2', region_name=region,
+                    aws_access_key_id=cnKeys.get('access_key'),
+                    aws_secret_access_key=cnKeys.get('secret_key')
+                )
+            )
+        else:
+            _EC2_CLIENT = sdk.EC2Client(
+                boto3.client('ec2', region_name=region)
+            )
     return _EC2_CLIENT
 
 
+
 @bp.route('/product/instance', methods=['GET'], cors=True)
-# @bp.route('/product/instance', methods=['GET'])
+# @bp.route('/product/instance', methods=['GET'], authorizer=jwt_auth, cors=True)
 def get_product_instance():
     query = bp.current_request.query_params
     if not query:
@@ -67,6 +89,7 @@ def get_product_instance():
 
 
 @bp.route('/product/volume', methods=['GET'], cors=True)
+# @bp.route('/product/volume', methods=['GET'], authorizer=jwt_auth, cors=True)
 def get_product_volume():
     query = bp.current_request.query_params
     if not query:
@@ -84,34 +107,40 @@ def get_product_volume():
         )
     except Exception as ex:
         logger.error(f"Failed to get volume product info: Error: {ex}'")
-        return ex        
+        return ex
 
 
 @bp.route('/instance/{res}', methods=['GET'], cors=True)
+# @bp.route('/instance/{res}', methods=['GET'], authorizer=jwt_auth, cors=True)
 def get_parm_list(res):
     query = bp.current_request.query_params
 
     try:
-        eclient = get_ec2_client( query.get('region') )         
+        eclient = get_ec2_client( query.get('region') )
+        # /instance/types?region=xx&arch=xx&family=xx 
         if res == 'types':             
             resp = eclient.get_instance_types(
                 architecture = query.get('arch'), 
                 instance_family = query.get('family')
-            )           
+            )
+        # /instance/family?region=xx&arch=xx  
         elif res == 'family':
-            list = eclient.list_instance_family(
+            resp = eclient.list_instance_family(
                 architecture = query.get('arch')
             )
-            resp = list
+        # /instance/detail?region=xx&type=xx 
+        elif res == 'detail':
+            resp = eclient.get_instance_detail(
+                instance_type = query.get('type')
+            )
+        # /instance/operation?region=xx
         elif res == 'operation':        
-            list = eclient.list_usage_operations()
-            resp = list 
-                 
+            resp = eclient.list_usage_operations()                 
         else:
-            resp = {
-                'error':'incorrect path parameter'
-            }
-            # raise BadRequestError('incorrect path parameter')
+            # resp = {
+            #     'error':'incorrect path parameter'
+            # }
+            raise BadRequestError('incorrect path parameter')
         
         return Response(
             body=resp,
@@ -120,4 +149,7 @@ def get_parm_list(res):
     
     except Exception as ex:
         logger.error(f"Failed to get instance '{res}: Error: {ex}'")
-        return ex
+        return Response(
+            body={res:str(ex)},
+            status_code=400
+        )

@@ -4,15 +4,14 @@ import json
 import boto3
 from chalice.app import Response
 from chalicelib import auth, sdk, file
-from chalicelib.utils import build_api_endpoint
+from chalicelib.utils import build_api_endpoint, load_json_config
 from . import bp, logger
 
-version = 'v0.7'
 
 _EC2_CLIENT = None
 _PRICE_CLIENT = None
 
-def get_ec2_client(region = 'us-east-1'):
+def get_ec2_client(region):
     global _EC2_CLIENT
     if _EC2_CLIENT is None:
         _EC2_CLIENT = sdk.EC2Client(
@@ -33,10 +32,12 @@ def render(templ_path, context):
     return jinja2.Environment(loader=jinja2.FileSystemLoader(path or "./")).get_template(filename).render(context)
 
 def list_ec2_regions():
+    region_dict = load_json_config('ec2_region')
     aws_regions = boto3._get_default_session().get_available_regions('ec2')
     gcr_regions = boto3._get_default_session().get_available_regions('ec2', 'aws-cn')
     aws_regions.extend(gcr_regions)
-    return aws_regions
+    region_list = [ {'code':r , 'name':region_dict.get(r)} for r in aws_regions ]
+    return region_list
 
 
 @bp.route('/', methods=['GET'])
@@ -46,10 +47,6 @@ def index():
     #set default region: us-east-1
     region = 'us-east-1' if not query else query.get('region')
     
-    sidebar = {
-        # 'title':bp.current_app.app_name,
-        "curr_ver": version,
-    }
     region_list = list_ec2_regions()
 
     eclient = get_ec2_client(region)
@@ -61,13 +58,16 @@ def index():
         architecture = 'x86_64', 
     )    
     #set default architecture: x86_64
-    types_list = eclient.get_instance_types(
-        architecture = 'x86_64', 
-        instance_family = 'm5'
-    )
+    # types_list = eclient.get_instance_types(
+    #     architecture = 'x86_64', 
+    #     instance_family = 'm5'
+    # )
 
     pclient = get_price_client()
     voltype_list = pclient.get_attribute_values(service_code='AmazonEC2',attribute_name='volumeApiName').get('data')
+    #remove sc1, st1 types that cann't support system disk 
+    voltype_list.remove('sc1')
+    voltype_list.remove('st1')
 
     #aip docs url
     apiDocsUrl = build_api_endpoint(
@@ -92,10 +92,9 @@ def index():
 
     # send to front-end
     context = {
-        'sidebar': sidebar,
         'region_list':region_list,
         'family_list':family_list,
-        'types_list':types_list,
+        # 'types_list':types_list,
         'voltype_list':voltype_list,
         'operation_list' : operation_list, 
         'instance': instance,
@@ -104,10 +103,45 @@ def index():
     }
 
     return Response(
-        body = render('chalicelib/web/template.html', context),
+        body = render('chalicelib/web/index.html', context),
         status_code = 200, 
         headers={"Content-Type": "text/html"}
     )    
+
+
+@bp.route('/detail', methods=['GET'])
+def index():
+    """ec2 instance detail page"""
+    query = bp.current_request.query_params
+    #set default region: us-east-1
+    region = 'us-east-1' if not query else query.get('region')
+    instance_type = 'm5.xlarge' if not query else query.get('type')
+
+    #aip docs url
+    apiDocsUrl = build_api_endpoint(
+        current_request=bp.current_app.current_request, 
+        request_path="api/docs"
+    )
+
+    eclient = get_ec2_client(region)
+
+    region_list = list_ec2_regions() 
+
+    context = {
+        'region' : region,
+        'region_list' : region_list,
+        # 'family_list' : family_list,
+        'instance_type' : instance_type,
+        'apiDocsUrl':apiDocsUrl
+    }
+
+    return Response(
+        body = render('chalicelib/web/detail.html', context),
+        status_code = 200, 
+        headers={"Content-Type": "text/html"}
+    )    
+
+
 
 @bp.route("/css/{file_name}", methods=["GET"])
 def get_main_css(file_name):

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% block head %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>EC2 QuickLook {% block title %}{% endblock %}</title>
+    <!-- Bootstrap CSS stylesheet -->
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+    <!-- Custom styles for this template -->
+    <link rel="stylesheet" href="css/custom">
+    <!-- Site Statistics -->
+    <script charset="UTF-8" id="LA_COLLECT" src="https://sdk.51.la/js-sdk-pro.min.js"></script>
+    <script>LA.init({id: "JexGwxlcPeHdrysy",ck: "JexGwxlcPeHdrysy"})</script>
+    {% endblock %} 
+  </head>
+
+  <body class="bg-light">
+    <div class="container-fluid">
+      <nav class="row" id="navigation-bar">
+        <div class="col-lg-1 col-2" id="logo">
+          <a href=".">
+              <img src="favicon.ico" alt="logo" style="height: 42px;">
+          </a>
+        </div>
+        <div class="col-lg-9 col-8" id="logo-title">
+          <p>EC2 QuickLook</p>
+        </div>            
+        <div class="col-lg-2 col-2" id="nav-links">
+          <a href="{{ apiDocsUrl }}" target="_blank">
+            <p>API Docs</p>
+          </a>
+        </div>       
+      </nav>
+
+      <main role="main" class="row" id="container-main">
+
+        <div class="col-md-1" id="sidebar">
+          {% block sidebar %}
+          <div class="row">
+            <div class="col-6 mb-1">
+              <p class="text-right">Version:</p>
+            </div>
+            <div class="col-6 mb-1">
+              <p class="text-left">v0.91</p>
+            </div>
+          </div>
+          {% endblock %}     
+        </div>
+
+        <div class="col-md-11" id="contents">
+          {% block content %}
+          {% endblock %}
+        </div>
+
+      </main>
+      
+    </div>
+
+    {% block script %}
+    <!-- <script src="js/jquery"></script> -->
+    <!-- <script src="https://fastly.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script> -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- <script src="/js/bootstrap"></script> -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.1/js/bootstrap.min.js"></script>
+    {% endblock %}
+
+  </body>
+</html>

@@ -75,7 +75,26 @@ class EC2Client(object):
         except Exception as ex:
             logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
             return { self.__class__.__name__ : str(ex) }
-            
+    
+    def get_instance_detail(self, instance_type):
+        try:
+            desc_args = {
+                'Filters' : [ {'Name': 'instance-type', 'Values': [ instance_type ]} ]
+            }
+            while True:
+                result = self._boto3_client.describe_instance_types(**desc_args)
+                instypeList = result.get('InstanceTypes')
+                if instypeList:
+                    return instypeList[0]
+                if 'NextToken' not in result:
+                    break
+                desc_args['NextToken'] = result['NextToken']
+
+            raise ValueError('not found')
+
+        except Exception as ex:
+            logger.error(f"{self.__class__.__name__} exec failed. Error: {ex}'")
+            return { self.__class__.__name__ : str(ex) }         
 
 
 class PricingClient(object):

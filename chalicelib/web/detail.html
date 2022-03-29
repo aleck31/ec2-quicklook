@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %} - detail{% endblock %}
+{% block head %} {{ super() }} {% endblock %}
+
+{% block content %}
+  <a class="text-primary" href="javascript:history.go(-1)">« Back</a>
+
+  <div class="row" style="display: none">
+    <div class="col-md-2 mb-2">
+      <label for="region">Region</label>
+      <select id="region" class="custom-select d-block w-100" required="">
+        <option value="">Choose...</option>
+        {% for region in region_list %}
+          {% if region.code == 'us-east-1' %}
+          <option selected value="{{ region.code }}">{{ '%s %s' %(region.code, region.name) }}</option>
+          {% else %}
+          <option value="{{ region.code }}">{{ '%s %s' %(region.code, region.name) }}</small></option>
+          {% endif %}
+        {% endfor %}
+      </select>
+      <div class="invalid-feedback">
+        Please select a valid Region.
+      </div>
+    </div>
+
+    <div class="col-md-2 mb-2">
+      <label for="types">Instance Type</label>
+      <select id="types" class="custom-select d-block w-100" required="">
+        <option selected value="{{ instance_type }}">{{ instance_type }}</option>
+      </select>
+      <div class="invalid-feedback">
+        Please select a valid Instance Type.
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-8 my-1">
+      <p class="lead"> Metadata for: <em> {{ instance_type }} </em></p>
+    </div>
+  </div>
+
+  <div class="row">  
+    <div class="col-8 mb-2">
+      <pre id="json-detail"></pre>
+    </div>    
+  </div>  
+
+{% endblock %}
+
+{% block script %}
+  {{ super() }}
+  <script src="js/json-viewer"></script>
+  <script type="text/javascript">
+    $(function () {
+      var region = $("#region").val();
+      var type = $("#types").val();
+      $.getJSON("instance/detail", { region: region, type: type },
+          function (result) {
+            var options = { withQuotes: false };
+            $('#json-detail').jsonViewer(result, options);
+          });
+    });
+  </script>
+{% endblock %}

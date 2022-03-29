@@ -1,13 +1,15 @@
 {
-    "version": "2.0",
-    "app_name": "app",
+    "version": "1.0",
+    "app_name": "ec2-quicklook",
     "stages": {
         "dev": {
             "api_gateway_stage": "dev",
-            "autogen_policy": true,            
-            "environment_variables": {
-                "TABLE_NAME": "prod-table",
-                "OTHER_CONFIG": "prod-value"
+            "autogen_policy": false,
+            "environment_variables": {              
+                "ENV_LOG_LEVEL": "INFO",
+                "USERS_TABLE_NAME": "users-jwt-table",
+                "SECRET_NAME": "your_secret_name",
+                "OTHER_CONFIG": "prod-value"        
             }  
         },
         "beta": {
@@ -16,6 +18,8 @@
             "iam_policy_file": "beta-app-policy.json"
         },
         "prod": {
+            "api_gateway_stage": "prod",
+            "autogen_policy": true,
             "manage_iam_role": false,
             "iam_role_arn": "arn:aws:iam::...:role/prod-role",
             "api_gateway_custom_domain": {

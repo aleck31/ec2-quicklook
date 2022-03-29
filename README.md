@@ -2,8 +2,8 @@
 A tool that help you to quickly query EC2 instance information, including: configuration, specifications, features and monthly usage costs for reference. 
 
 ## What is this project?
-This project is my practice of using aws chalice for python development.  It contains backend API and a simple frontend page, and integrates swagger ui to visualize the API's resources.
-You can deploy it to AWS cloud with one command when you complete the code development of all functions and interfaces. No server, container, storage, etc. resources are needed for deployment. 
+This project is my practice of using aws chalice for python development.  It contains a simple frontend page, backend API, and integrates swagger ui to visualize the API's resources. It provides jwt auth option to authorize the api access. 
+You can deploy it to AWS cloud with one command when you complete the code development of all functions and interfaces. No server, container, storage etc. resources needed for deployment. 
 Pretty simple! 
 
 <br>

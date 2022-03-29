@@ -45,7 +45,7 @@
   position: absolute; */
 }
 
-#main-content #sidebar {
+#container-main #sidebar {
   background: #5d5d5d;
   /* height: 100vh; */
   padding: 15px 10px 0px 10px;
@@ -53,24 +53,24 @@
   text-decoration: none;
 }
 
-#main-content #contents {
+#container-main #contents {
   min-height: 95vh;
   padding: 15px;
   position: relative;
 }
 
-#main-content #contents #search {
+#container-main #contents #search {
   height: 7vh;
   padding: 10px 15px;
   position: relative;
 }
-#main-content #contents #product {
+#container-main #contents #product {
   height: 10vh;
   padding: 15px;
   position: relative;
 }
 
-#main-content #contents .date {
+#container-main #contents .date {
   line-height: 2;
   margin-bottom: 30px;
   border-bottom: 1px solid black;
@@ -82,3 +82,52 @@
 }
 
 .lh-condensed { line-height: 1.25; }
+
+
+/* Syntax highlighting for JSON objects */
+ul.json-dict, ol.json-array {
+  list-style-type: none;
+  margin: 0 0 0 1px;
+  border-left: 1px dotted slategray;
+  padding-left: 2em;
+}
+.json-string {
+  color: #313131;
+}
+.json-literal {
+  color: #f48d0c;
+  font-weight: bold;
+}
+
+/* Toggle button */
+a.json-toggle {
+  position: relative;
+  color: inherit;
+  text-decoration: none;
+}
+a.json-toggle:focus {
+  outline: none;
+}
+a.json-toggle:before {
+  color: #aaa;
+  content: "\25BC"; /* down arrow */
+  position: absolute;
+  display: inline-block;
+  width: 1em;
+  left: -1em;
+}
+a.json-toggle.collapsed:before {
+  transform: rotate(-90deg); /* Use rotated down arrow, prevents right arrow appearing smaller than down arrow in some browsers */
+  -ms-transform: rotate(-90deg);
+  -webkit-transform: rotate(-90deg);
+}
+
+/* Collapsable placeholder links */
+a.json-placeholder {
+  color: #aaa;
+  padding: 0 1em;
+  text-decoration: none;
+}
+a.json-placeholder:hover {
+  text-decoration: underline;
+}

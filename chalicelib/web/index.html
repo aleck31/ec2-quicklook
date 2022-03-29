@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %} - home{% endblock %}
+{% block head %} {{ super() }} {% endblock %}
+
+{% block content %}
+<!-- <div class="col-md-11" id="contents"> -->
+  <!-- <form action="#" class="needs-validation was-validated" novalidate="" method="GET"> -->
+  <form class="needs-validation was-validated" novalidate="">
+    <!-- serach conditions -->
+    <div class="row">
+      <div class="col-md-2 mb-2">
+        <label for="region">Region</label>
+        <select id="region" class="custom-select d-block w-100" required="">
+          {% for region in region_list %}
+            {% if region.code == 'us-east-1' %}
+            <option selected value="{{ region.code }}">{{ '%s %s' %(region.code, region.name) }}</option>
+            {% else %}
+            <option value="{{ region.code }}">{{ '%s %s' %(region.code, region.name) }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <div class="invalid-feedback">
+          Please select a valid Region.
+        </div>
+      </div>
+      <div class="col-md-2 mb-2">
+        <label for="arch">Architecture</label>
+        <select id="arch" class="custom-select d-block w-100" required="">
+          <option selected value="x86_64">x86_64</option>
+          <option value="arm64">arm64</option>
+        </select>
+      </div>
+      <div class="col-md-4 mb-2">
+        <label for="operation">Operation System</label>
+        <select id="operation" class="custom-select d-block w-100" required="">
+          {% for op in operation_list %}
+            {% if op.platform == 'Ubuntu' %}
+            <option selected value="{{ op.operation }}">{{ op.platform }}</option>
+            {% else %}
+            <option value="{{ op.operation }}">{{ op.platform }}</option>
+            {% endif %}
+        {% endfor %}
+        </select>
+        <div class="invalid-feedback">
+          Please select a valid Operation System.
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-2 mb-2">
+        <label for="family">Instance Family</label>
+        <select id="family" class="custom-select d-block w-100" required="">
+          <option value="">Choose...</option>
+          {% for l in family_list %}
+            {% if l.name == 'm5' %}
+            <option selected value="{{ l.name }}">{{ '%s: %s' %(l.description,l.name) }}</option>
+            {% else %}
+            <option value="{{ l.name }}">{{ '%s: %s' %(l.description,l.name) }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <div class="invalid-feedback">
+          Please select a valid Instance Family.
+        </div>
+      </div>
+      <div class="col-md-2 mb-2">
+        <label for="types">Instance Type</label>
+        <select id="types" class="custom-select d-block w-100" required="">
+          <option value="">Choose...</option>
+        </select>
+        <div class="invalid-feedback">
+          Please select a valid Instance Type.
+        </div>
+      </div>
+      <div class="col-md-2 mb-2">
+        <label for="voltypes">Volume Type</label>
+        <select id="voltypes" class="custom-select d-block w-100" required="">
+          <option value="">Choose...</option>
+          {% for vt in voltype_list %}
+            {% if vt == 'gp3' %}
+            <option selected value="{{ vt }}">{{ vt }}</option>
+            {% else %}
+            <option value="{{ vt }}">{{ vt }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <div class="invalid-feedback">
+          Please select a valid Volume Type.
+        </div>
+      </div>
+      <div class="col-md-2 mb-2">
+        <label for="volsize">Disk Size (GiB)</label>
+        <!-- <div class="input-group">
+          <input id="volsize" type="text" class="form-control" placeholder=""  required="">
+          <span class="input-group-btn"></span>
+            <button class="btn btn-default" type="button">-</button>
+            <button class="btn btn-default" type="button">+</button>
+          </span>
+        </div> -->
+        <input id="volsize" type="text" class="form-control" placeholder="" value="60"  required="">
+        <div class="invalid-feedback">
+          Volume size required.
+        </div>
+      </div>
+      <!-- Query button -->
+      <div class="col-md-4 mb-2">
+        <input id="btnquery" class="btn btn-success text-center" value='QuickLook' type="button" onclick="" >
+        <!-- <button class="btn btn-success text-center" type="submit">QuickLook</button> -->
+      </div>
+    </div>
+  </form>
+  <hr class="mb-4">
+
+  <!-- price detail -->
+  <div class="row">
+    <div class="col-lg-3 col-md-4 mb-2">
+      <div class="card mb-4 box-shadow">
+        <div class="card-header">
+          <h4 class="my-0 font-weight-normal">Instance</h4>
+        </div>
+        <div class="card-body">
+          <h2 class="card-title pricing-card-title"><span id="insprice">{{instance.get('listPrice').pricePerUnit.currency}} {{instance.get('listPrice').pricePerUnit.value}} </span><small class="text-muted">/ <span id="insunit">{{instance.get('listPrice').unit}}</span></small></h1>
+          <ul class="list-unstyled mt-3 mb-1">
+            <small>effective since: <span id="insdate">{{instance.get('listPrice').effectiveDate}}</span></small>
+            <hr class="my-2">
+            <li><span id="insfamily">{{instance.get('productMeta').instanceFamily}}</span></li>
+            <li>tenancy: <span id="instenan">{{instance.get('productMeta').tenancy}}</span></li>
+            <li>location: <span id="insloca">{{instance.get('productMeta').location}}</span></li>             
+            <!-- <li><a id="insurl" href="{{instance.get('productMeta').introduceUrl}}" target="_blank">Learn more »</a></li> -->
+            <li><a id="insurl" href="#" target="_blank">Learn more »</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-4 mb-2">
+      <div class="card mb-4 box-shadow">
+        <div class="card-header">
+          <h4 class="my-0 font-weight-normal">Volume</h4>
+        </div>
+        <div class="card-body">
+          <h2 class="card-title pricing-card-title"><span id="volprice">{{volume.get('listPrice').pricePerUnit.currency}} {{volume.get('listPrice').pricePerUnit.value}} </span><small class="text-muted">/ <span id="volunit">{{volume.get('listPrice').unit}}</span></small></h1>
+          <ul class="list-unstyled mt-3 mb-1">
+            <small>effective since: <span id="voldate">{{volume.get('listPrice').effectiveDate}}</span></small>
+            <hr class="my-2">
+            <li><span id="voltype">{{volume.get('productMeta').volumeType}}</span></li>
+            <li>usage type: <span id="usagetype">{{volume.get('productMeta').usagetype}}</span></li>
+            <li>storage media: <span id="volmedia">{{volume.get('productMeta').storageMedia}}</span></li>               
+            <!-- <li><a id="volurl" href="{{volume.get('productMeta').introduceUrl}}" target="_blank">Learn more »</a></li> -->
+            <li><a id="volurl" href="#" target="_blank">Learn more »</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- instance detail -->
+  <div class="row" id="instance">
+    <div class="col-md-4 mb-2">
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead class="thead-dark">
+            <tr>
+              <th width="40%">Hardware</th>
+              <th width="60%">Value</th>
+            </tr>
+          </thead>
+          <tbody id="tbhardware">
+            {% for k,v in instance.get('hardwareSpecs').items() %}
+            <tr>
+              <td>{{k}}</td>
+              <td>{{v}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>                  
+        </table>
+      </div>
+    </div>
+
+    <div class="col-md-4 mb-2">
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead class="thead-dark">
+            <tr>
+              <th width="40%">Software</th>
+              <th width="60%">Value</th>
+            </tr>
+          </thead>
+          <tbody id="tbsoftware">
+            {% for k,v in instance.get('softwareSpecs').items() %}
+            <tr>
+              <td>{{k}}</td>
+              <td>{{v}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>                  
+        </table> 
+      </div>
+    </div>
+    
+    <div class="col-md-4 mb-2">
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead class="thead-dark">
+            <tr>
+              <th width="40%">Features</th>
+              <th width="60%">Value</th>
+            </tr>
+          </thead>
+          <tbody id="tbfeature">
+            {% for k,v in instance.get('productFeature').items() %}
+            <tr>
+              <td>{{k}}</td>
+              <td>{{v}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>                  
+        </table>
+      </div>
+    </div> 
+  </div>
+  <!-- <hr class="mb-4"> -->
+  <!-- volume detail -->
+  <div class="row">
+    <div class="col-md-4 mb-2">
+      <table class="table table-striped table-sm">
+        <thead class="thead-dark">
+          <tr>
+            <th width="40%">InstanceSotrage</th>
+            <th width="60%">Value</th>
+          </tr>
+        </thead>
+        <tbody id="tbinstorage">
+          {% for k,v in instance.get('instanceSotrage').items() %}
+          <tr>
+            <td>{{k}}</td>
+            <td>{{v}}</td>
+          </tr>
+          {% endfor %}
+        </tbody>                  
+      </table> 
+    </div>
+
+    <div class="col-md-4 mb-2">
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead class="thead-dark">
+            <tr>
+              <th width="40%">EBS Volume</th>
+              <th width="60%">Value</th>
+            </tr>
+          </thead>
+          <tbody id="tbvolspec">
+            {% for k,v in volume.get('productSpecs').items() %}
+            <tr>
+              <td>{{k}}</td>
+              <td>{{v}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>  
+
+    <div class="col-md-4 mb-2">
+      <div class="table-responsive">
+        <table id="tbdetail" class="table table-striped table-sm" style="display: none;">
+          <thead>
+            <tr class="bg-secondary"><th class="text-center">
+              <a id="detailurl" class="text-light stretched-link" href="#">Get more detail ...</a>
+            </th></tr>
+          </thead>
+        </table>
+      </div>
+    </div>  
+
+  </div>
+
+<!-- </div> -->
+{% endblock %}
+
+{% block script %}
+  {{ super() }}
+  <script src="js/custom"></script>
+{% endblock %}
