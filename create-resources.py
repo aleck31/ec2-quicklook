@@ -4,15 +4,15 @@ import json
 import argparse
 import base64
 import boto3
-from chalicelib.utils import write_env_var, exist_in_config
+from chalicelib.utils import write_env_var, exist_in_config, load_env_var, load_json_file
 
 
 AUTH_KEY_PARAM_NAME = '/ec2-quicklook/auth-key'
 TABLES = {
-    'users': {
-        'prefix': 'users-jwt',
-        'env_var': 'USERS_TABLE_NAME',
-        'hash_key': 'username',
+    'config': {
+        'prefix': 'quicklook-cfg',
+        'env_var': 'CONF_TABLE_NAME',
+        'hash_key': 'name'
     }
 }
 
@@ -65,6 +65,7 @@ def create_auth_key_if_needed(stage):
 
 
 def create_resources(args):
+    # create ddb tables defined in TABLES
     for table_config in TABLES.values():
         # Assume if it a value is recorded in .chalice config
         # file, the table already exists.
@@ -78,6 +79,21 @@ def create_resources(args):
             table_config.get('range_key')
         )
         write_env_var(table_config['env_var'], table_name, args.stage)
+
+    # import example config to conf_table
+    table_name = load_env_var('CONF_TABLE_NAME', args.stage)
+    conf_table = boto3.resource('dynamodb').Table(table_name)
+    # regions
+    item_instance = load_json_file('ec2_regions')
+    conf_table.put_item(Item = item_instance)
+    # operation
+    item_instance = load_json_file('ec2_operation')
+    conf_table.put_item(Item = item_instance)
+    # instance
+    item_instance = load_json_file('ec2_instance')
+    conf_table.put_item(Item = item_instance)
+
+    # create auth_key
     create_auth_key_if_needed(args.stage)
 
 

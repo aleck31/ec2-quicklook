@@ -53,6 +53,12 @@
   text-decoration: none;
 }
 
+#sidebar a {
+  padding: 0px;
+  margin: 0px;
+  color: rgb(255, 244, 86);
+}
+
 #container-main #contents {
   min-height: 95vh;
   padding: 15px;

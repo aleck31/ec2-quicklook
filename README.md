@@ -1,8 +1,10 @@
 # EC2 QuickLook
-A tool that help you to quickly query EC2 instance information, including: configuration, specifications, features and monthly usage costs for reference. 
+A web tool that help you to quickly query EC2 instance information, including: configuration, specifications, features and monthly on-demand price for reference. 
+
+<br>
 
 ## What is this project?
-This project is my practice of using aws chalice for python development.  It contains a simple frontend page, backend API, and integrates swagger ui to visualize the API's resources. It provides jwt auth option to authorize the api access. 
+This is an example project of using aws chalice for python development.  It contains a simple frontend page, backend API, and integrates **swagger ui** to visualize the API's resources. 
 You can deploy it to AWS cloud with one command when you complete the code development of all functions and interfaces. No server, container, storage etc. resources needed for deployment. 
 Pretty simple! 
 
@@ -40,20 +42,18 @@ Setup Python Virtual Environment
 
 ```bash
 
-❯ python -m venv .venv
+❯ python -m venv .env
 
 ```
 
 Activate Python Virtual Environment
 
 ```bash
-
-# Window
-❯ .venv/Scripts/Activate.ps1
-
 # Linux/Mac
 $ source .venv/bin/Activate
 
+# Window
+❯ .venv/Scripts/Activate.ps1
 ```
 
 Install Required Python Library
@@ -63,19 +63,10 @@ Install Required Python Library
 ❯ pip install -r requirements.txt
 
 ```
-Create Resources
+Create Resources （default --stage dev）
 ```bash
 
 ❯ python create-resources.py
-
-```
-Create Users for Auth
-```bash
-
-❯ python users.py --add-user
-
- Username: <demo_user>
- Password: <your_passwd>
 
 ```
 Run Locally for Experience [option]

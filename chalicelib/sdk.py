@@ -1,26 +1,30 @@
-import ast
-from chalicelib.utils import load_json_config
 import logging
+import ast
+from chalicelib.config import load_config
 
 
-
+# Get logger
 logger = logging.getLogger()
 
+# Define EC2 Product Page URL
 INSTANCE_TYPE_URL = 'https://aws.amazon.com/cn/ec2/instance-types/'
 VOLUME_TYPE_URL = 'https://aws.amazon.com/cn/ebs/volume-types/'
+
 
 
 class EC2Client(object):
     def __init__(self, boto3_client):
         self._boto3_client = boto3_client
-        self.region = boto3_client._client_config.region_name 
+        self.region = boto3_client._client_config.region_name
 
     def list_usage_operations(self):
-        list = load_json_config('ec2_operation')
+        # list = load_json_config('ec2_operation')
+        list = load_config('operation')
         return list
 
     def list_instance_family(self, architecture):
-        list = load_json_config('ec2_instance')
+        # list = load_json_config('ec2_instance')
+        list = load_config('instance')
         familyList = []
         for f in list:
             for i in f['family']:

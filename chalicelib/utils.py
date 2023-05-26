@@ -9,19 +9,35 @@ from chalice.app import Request
 logger = logging.getLogger()
 
 
-def load_json_config(config):
+def load_json_file(filename):
     '''load config list from json file'''
     # usage operation config: ec2_operation.json
     # instance family config: ec2_instance.json
-    file_name = config+'.json'
+    file_name = filename+'.json'
+    with open(os.path.join('example', file_name), encoding='utf-8') as f:
+        config = json.load(f)
+    return config
+
+
+def load_json_config(filename):
+    '''load config list from json file'''
+    # usage operation config: ec2_operation.json
+    # instance family config: ec2_instance.json
+    file_name = filename+'.json'
     with open(os.path.join('chalicelib', file_name), encoding='utf-8') as f:
         config = json.load(f)
     return config['config']
 
 
+def get_table_name(stage='dev'):
+    '''load table name from config'''
+    tableName = load_env_var('CONF_TABLE_NAME', stage)
+    return tableName
+
+
 def load_env_var(env_var,stage='dev'):
     '''load environment variable from .chalice config'''
-    # User the chalice modules to load the config directly.
+    # Use chalice modules to load the config directly.
     with open(os.path.join('.chalice', 'config.json')) as f:
         config = json.load(f)
     return config['stages'][stage]['environment_variables'].get(env_var)

@@ -1,10 +1,9 @@
 import os
 import jinja2
-import json
 import boto3
 from chalice.app import Response
-from chalicelib import auth, sdk, file
-from chalicelib.utils import build_api_endpoint, load_json_config
+from chalicelib import sdk, file, config
+from chalicelib.utils import build_api_endpoint, get_table_name
 from . import bp, logger
 
 
@@ -32,7 +31,10 @@ def render(templ_path, context):
     return jinja2.Environment(loader=jinja2.FileSystemLoader(path or "./")).get_template(filename).render(context)
 
 def list_ec2_regions():
-    region_dict = load_json_config('ec2_region')
+    # region_dict = load_json_config('ec2_region')
+    table_name = get_table_name()
+    # Query region list from Dynamodb table
+    region_dict = config.load_config('regions')
     aws_regions = boto3._get_default_session().get_available_regions('ec2')
     gcr_regions = boto3._get_default_session().get_available_regions('ec2', 'aws-cn')
     aws_regions.extend(gcr_regions)

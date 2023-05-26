@@ -1,4 +1,5 @@
 {
+    "name": "regions",
     "version": "2021.12",
     "url":"",
     "description": "Amazon EC2 Regions Config",

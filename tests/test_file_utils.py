@@ -1,4 +1,4 @@
-from chalicelib.utils.file import find_file, get_static_file
+from chalicelib.file import find_file, get_static_file
 import pytest
 import os
 

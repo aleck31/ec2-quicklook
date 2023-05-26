@@ -35,7 +35,7 @@
         <label for="operation">Operation System</label>
         <select id="operation" class="custom-select d-block w-100" required="">
           {% for op in operation_list %}
-            {% if op.platform == 'Ubuntu' %}
+            {% if op.platform == 'Linux/UNIX' %}
             <option selected value="{{ op.operation }}">{{ op.platform }}</option>
             {% else %}
             <option value="{{ op.operation }}">{{ op.platform }}</option>

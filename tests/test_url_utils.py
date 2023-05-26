@@ -1,5 +1,5 @@
 from chalice.app import Request
-from chalicelib.utils.url import build_api_endpoint
+from chalicelib.utils import build_api_endpoint
 from urllib import parse
 
 MOCK_STAGE = "test"
