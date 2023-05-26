@@ -1,6 +1,8 @@
-import os
 import logging
+import os
 
+
+# Get logger
 logger = logging.getLogger()
 
 

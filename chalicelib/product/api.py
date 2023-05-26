@@ -1,7 +1,7 @@
 import boto3
 import ast
 from chalice.app import Response, AuthResponse, BadRequestError, NotFoundError
-from chalicelib import auth, sdk, utils
+from chalicelib import sdk, utils
 from . import bp, logger
 
 
@@ -9,18 +9,8 @@ _PRICING_CLIENT = None
 _EC2_CLIENT = None
 
 
-@bp.authorizer()
-def jwt_auth(auth_request):
-    token = auth_request.token
-    decoded = auth.decode_jwt_token(token, auth.get_auth_key())
-    return AuthResponse(routes=['*'], principal_id=decoded['sub'])
-
-
-def get_authorized_username(current_request):
-    return current_request.context['authorizer']['principalId']
-
-
 def get_pricing_client(region = 'ap-south-1'):
+    '''Init boto3 pricing client, set default region to ap-south-1'''
     global _PRICING_CLIENT
     if _PRICING_CLIENT is None:
         _PRICING_CLIENT = sdk.PricingClient(
@@ -29,16 +19,10 @@ def get_pricing_client(region = 'ap-south-1'):
     return _PRICING_CLIENT
 
 
-def get_secret_name():
-    '''load secret name from config'''
-    secretName = utils.load_env_var('SECRET_NAME')
-    return secretName
-
-
-def get_credentials():
-    '''get aws credentials(ak/sk) from AWS Secrets Manager'''
+def get_cn_credentials():
+    '''get aws GCR credentials(ak/sk) from AWS Secrets Manager'''
     secretString = boto3.client('secretsmanager').get_secret_value(
-        SecretId='cn0952_ec2_describe'
+        SecretId=utils.load_env_var('SECRET_NAME')
     ).get('SecretString')
     return ast.literal_eval(secretString)
 
@@ -50,7 +34,7 @@ def get_ec2_client( region = 'us-east-1'):
         return _EC2_CLIENT
     else:
         if region in ['cn-north-1','cn-northwest-1']:
-            cnKeys = get_credentials()
+            cnKeys = get_cn_credentials()
             _EC2_CLIENT = sdk.EC2Client(
                 boto3.client(
                     'ec2', region_name=region,
