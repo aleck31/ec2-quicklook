@@ -4,7 +4,7 @@ import json
 import argparse
 import base64
 import boto3
-from chalicelib.utils import write_env_var, exist_in_config, load_env_var, load_json_file
+from chalicelib.utils import write_local_env_var, exist_in_config, load_local_env_var, load_json_file
 
 
 AUTH_KEY_PARAM_NAME = '/ec2-quicklook/auth-key'
@@ -78,10 +78,10 @@ def create_resources(args):
             table_config['prefix'], table_config['hash_key'],
             table_config.get('range_key')
         )
-        write_env_var(table_config['env_var'], table_name, args.stage)
+        write_local_env_var(table_config['env_var'], table_name, args.stage)
 
     # import example config to conf_table
-    table_name = load_env_var('CONF_TABLE_NAME', args.stage)
+    table_name = load_local_env_var('CONF_TABLE_NAME', args.stage)
     conf_table = boto3.resource('dynamodb').Table(table_name)
     # regions
     item_instance = load_json_file('ec2_regions')

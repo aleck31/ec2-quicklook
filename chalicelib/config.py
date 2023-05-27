@@ -1,6 +1,7 @@
+import os
 import logging
 import boto3
-from chalicelib.utils import load_env_var
+from chalice.app import BadRequestError
 
 
 # Get logger
@@ -10,12 +11,19 @@ logger = logging.getLogger()
 _CONF_DB = None
 
 
-def get_conf_db(stage='dev'):
+def get_conf_db():
     global _CONF_DB
     if _CONF_DB is None:
-        # load ddb tablename from env config
-        tableName = load_env_var('CONF_TABLE_NAME', stage)
-        _CONF_DB = boto3.resource('dynamodb').Table(tableName)
+        # get runtime region from reserved env var
+        try:
+            runtime_region = os.environ['AWS_REGION']
+        except Exception:
+            # set to dynamodb region for local test
+            runtime_region = 'ap-southeast-1'
+        # load ddb tablename from lambda env var
+        _CONF_DB = boto3.resource('dynamodb', region_name=runtime_region).Table(
+            os.environ['CONF_TABLE_NAME']
+        )
     return _CONF_DB
 
 
@@ -27,5 +35,5 @@ def load_config(name):
         )['Item']['config']
         return item_dict
     except Exception as ex:
-        return str(ex)
-    
+        raise BadRequestError(ex)
+        # return str(ex)

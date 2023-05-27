@@ -15,9 +15,9 @@
       "api_gateway_stage": "test",
       "autogen_policy": true,
       "environment_variables": {
-        "ENV_LOG_LEVEL": "ERROR",
+        "ENV_LOG_LEVEL": "DEBUG",
         "SECRET_NAME": "cn0952_ec2_describe",
-        "USERS_TABLE_NAME": "users-jwt-799b4fa4-8117-46df-9444-dacd8add3673",
+        "USERS_TABLE_NAME": "quicklook-users-799b4fa4-8117-46df-9444-dacd8add3673",
         "CONF_TABLE_NAME": "quicklook-cfg-7470acc3-a4b5-491e-b726-bf2399542a45"
       }
     },

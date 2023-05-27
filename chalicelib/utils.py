@@ -31,11 +31,11 @@ def load_json_config(filename):
 
 def get_table_name(stage='dev'):
     '''load table name from config'''
-    tableName = load_env_var('CONF_TABLE_NAME', stage)
+    tableName = load_local_env_var('CONF_TABLE_NAME', stage)
     return tableName
 
 
-def load_env_var(env_var,stage='dev'):
+def load_local_env_var(env_var,stage='dev'):
     '''load environment variable from .chalice config'''
     # Use chalice modules to load the config directly.
     with open(os.path.join('.chalice', 'config.json')) as f:
@@ -43,7 +43,7 @@ def load_env_var(env_var,stage='dev'):
     return config['stages'][stage]['environment_variables'].get(env_var)
 
 
-def write_env_var(key, value, stage):
+def write_local_env_var(key, value, stage):
     '''write environment variable to .chalice config'''
     with open(os.path.join('.chalice', 'config.json')) as f:
         config = json.load(f)
@@ -55,7 +55,7 @@ def write_env_var(key, value, stage):
         f.write(serialized + '\n')
 
 
-def remove_env_var(env_var, stage):
+def remove_local_env_var(env_var, stage):
     '''remove environment variable from .chalice config'''
     with open(os.path.join('.chalice', 'config.json')) as f:
         config = json.load(f)

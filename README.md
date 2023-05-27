@@ -96,6 +96,18 @@ https://...execute-api.us-east-1.amazonaws.com/api/docs
 
 <br>
 
+## Troubleshooting
+
+### Access denied
+If you got an "AccessDeniedException" error, pls ensure that the correct permissions are configured for lambda's service role. You can refer to example/**role_policy.json** to update the lambda role permissions.
+
+### Query in AWS China Region
+If you encounter an error when querying AWS China region, please make sure you have an AWS China account, and save the credentials in secrets manager, then replace the value of **SECRET_NAME** in the config.json file.
+
+
+
+<br>
+
 ## Environment Setup
 
 ### Log Level

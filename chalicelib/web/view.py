@@ -3,7 +3,7 @@ import jinja2
 import boto3
 from chalice.app import Response
 from chalicelib import sdk, file, config
-from chalicelib.utils import build_api_endpoint, get_table_name
+from chalicelib.utils import build_api_endpoint
 from . import bp, logger
 
 
@@ -31,8 +31,6 @@ def render(templ_path, context):
     return jinja2.Environment(loader=jinja2.FileSystemLoader(path or "./")).get_template(filename).render(context)
 
 def list_ec2_regions():
-    # region_dict = load_json_config('ec2_region')
-    table_name = get_table_name()
     # Query region list from Dynamodb table
     region_dict = config.load_config('regions')
     aws_regions = boto3._get_default_session().get_available_regions('ec2')
@@ -58,12 +56,7 @@ def index():
     family_list = eclient.list_instance_family(
         # architecture = 'arm64', 
         architecture = 'x86_64', 
-    )    
-    #set default architecture: x86_64
-    # types_list = eclient.get_instance_types(
-    #     architecture = 'x86_64', 
-    #     instance_family = 'm5'
-    # )
+    )
 
     pclient = get_price_client()
     voltype_list = pclient.get_attribute_values(service_code='AmazonEC2',attribute_name='volumeApiName').get('data')
@@ -124,8 +117,6 @@ def index():
         current_request=bp.current_app.current_request, 
         request_path="api/docs"
     )
-
-    eclient = get_ec2_client(region)
 
     region_list = list_ec2_regions() 
 

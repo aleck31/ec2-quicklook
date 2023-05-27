@@ -1,7 +1,6 @@
 import logging
 from pydantic import BaseModel, Field
 from chalice import Chalice
-from chalice.app import Response, AuthResponse, NotFoundError
 from chalicelib import swagger, product, web
 from chalicelib.swagger.utils import get_swagger_ui
 
