@@ -4,143 +4,180 @@ import boto3
 from chalice.app import Response
 from chalicelib import sdk, file, config
 from chalicelib.utils import build_api_endpoint
-from . import bp, logger
-
+from app import logger
+from . import bp
 
 _EC2_CLIENT = None
 _PRICE_CLIENT = None
 
+
 def get_ec2_client(region):
     global _EC2_CLIENT
     if _EC2_CLIENT is None:
+        logger.debug(f"Initializing EC2 client for region: {region}")
         _EC2_CLIENT = sdk.EC2Client(
             boto3.client('ec2', region_name=region)
         )
     return _EC2_CLIENT
 
+
 def get_price_client(region = 'ap-south-1'):
     global _PRICE_CLIENT
     if _PRICE_CLIENT is None:
+        logger.debug(f"Initializing pricing client for region: {region}")
         _PRICE_CLIENT = sdk.PricingClient(
             boto3.client('pricing', region_name=region)
         )
     return _PRICE_CLIENT
 
+
 def render(templ_path, context):
-    path, filename = os.path.split(templ_path)
-    return jinja2.Environment(loader=jinja2.FileSystemLoader(path or "./")).get_template(filename).render(context)
+    try:
+        path, filename = os.path.split(templ_path)
+        return jinja2.Environment(loader=jinja2.FileSystemLoader(path or "./")).get_template(filename).render(context)
+    except Exception as ex:
+        logger.error(f"Template rendering failed for {templ_path}: {str(ex)}")
+        raise
+
 
 def list_ec2_regions():
-    # Query region list from Dynamodb table
-    region_dict = config.load_config('regions')
-    aws_regions = boto3._get_default_session().get_available_regions('ec2')
-    gcr_regions = boto3._get_default_session().get_available_regions('ec2', 'aws-cn')
-    aws_regions.extend(gcr_regions)
-    region_list = [ {'code':r , 'name':region_dict.get(r)} for r in aws_regions ]
-    return region_list
+    try:
+        # Query region list from Dynamodb table
+        region_dict = config.load_config('regions')
+        aws_regions = boto3._get_default_session().get_available_regions('ec2')
+        gcr_regions = boto3._get_default_session().get_available_regions('ec2', 'aws-cn')
+        aws_regions.extend(gcr_regions)
+        region_list = [{'code':r , 'name':region_dict.get(r)} for r in aws_regions]
+        return region_list
+    except Exception as ex:
+        logger.error(f"Failed to list EC2 regions: {str(ex)}")
+        raise
 
 
 @bp.route('/', methods=['GET'])
 def index():
     """ec2-quicklook homepage"""
-    query = bp.current_request.query_params
-    #set default region: us-east-1
-    region = 'us-east-1' if not query else query.get('region')
-    
-    region_list = list_ec2_regions()
+    try:
+        query = bp.current_request.query_params
+        #set default region: us-east-1
+        region = 'us-east-1' if not query else query.get('region')
+        
+        region_list = list_ec2_regions()
 
-    eclient = get_ec2_client(region)
-    operation_list = eclient.list_usage_operations()
-    
-    #set default architecture: x86_64
-    family_list = eclient.list_instance_family(
-        # architecture = 'arm64', 
-        architecture = 'x86_64', 
-    )
+        eclient = get_ec2_client(region)
+        operation_list = eclient.list_usage_operations()
+        
+        #set default architecture: x86_64
+        family_list = eclient.list_instance_family(
+            # architecture = 'arm64', 
+            architecture = 'x86_64'
+        )
 
-    pclient = get_price_client()
-    voltype_list = pclient.get_attribute_values(service_code='AmazonEC2',attribute_name='volumeApiName').get('data')
-    #remove sc1, st1 types that cann't support system disk 
-    voltype_list.remove('sc1')
-    voltype_list.remove('st1')
+        pclient = get_price_client()
+        voltype_list = pclient.get_attribute_values(
+            service_code='AmazonEC2',
+            attribute_name='volumeApiName'
+        ).get('data', [])
+        
+        #remove sc1, st1 types that can't support system disk 
+        if 'sc1' in voltype_list:
+            voltype_list.remove('sc1')
+        if 'st1' in voltype_list:
+            voltype_list.remove('st1')
 
-    #aip docs url
-    apiDocsUrl = build_api_endpoint(
-        current_request=bp.current_app.current_request, 
-        request_path="api/docs"
-    )
+        #api docs url
+        apiDocsUrl = build_api_endpoint(
+            current_request=bp.current_app.current_request, 
+            request_path="api/docs"
+        )
 
-    # gen blank data
-    instance = {
-        "productMeta": {},
-        "hardwareSpecs": {},
-        "softwareSpecs": {},
-        "productFeature": {},
-        "instanceSotrage": {},
-        "listPrice": { "pricePerUnit": {'currency':"USD",}, }
-    }
-    volume = {
-        "productMeta": {},
-        "productSpecs": {},
-        "listPrice": { "pricePerUnit": {'currency':"USD",}, }
-    }
+        # gen blank data
+        instance = {
+            "productMeta": {},
+            "hardwareSpecs": {},
+            "softwareSpecs": {},
+            "productFeature": {},
+            "instanceSotrage": {},
+            "listPrice": { "pricePerUnit": {'currency':"USD",}, }
+        }
+        volume = {
+            "productMeta": {},
+            "productSpecs": {},
+            "listPrice": { "pricePerUnit": {'currency':"USD",}, }
+        }
 
-    # send to front-end
-    context = {
-        'region_list':region_list,
-        'family_list':family_list,
-        # 'types_list':types_list,
-        'voltype_list':voltype_list,
-        'operation_list' : operation_list, 
-        'instance': instance,
-        'volume' : volume,
-        'apiDocsUrl':apiDocsUrl
-    }
+        # send to front-end
+        context = {
+            'region_list': region_list,
+            'family_list': family_list,
+            'voltype_list': voltype_list,
+            # 'types_list':types_list,
+            'operation_list': operation_list, 
+            'instance': instance,
+            'volume': volume,
+            'apiDocsUrl': apiDocsUrl,
+            'version': config.get_version('app')
+        }
 
-    return Response(
-        body = render('chalicelib/web/index.html', context),
-        status_code = 200, 
-        headers={"Content-Type": "text/html"}
-    )    
+        return Response(
+            body = render('chalicelib/web/index.html', context),
+            status_code = 200, 
+            headers={"Content-Type": "text/html"}
+        )
+    except Exception as ex:
+        logger.error(f"Homepage rendering failed: {str(ex)}")
+        return Response(
+            body="Internal server error",
+            status_code=500,
+            headers={"Content-Type": "text/html"}
+        )
 
 
 @bp.route('/detail', methods=['GET'])
-def index():
+def detail():  # Fixed duplicate function name
     """ec2 instance detail page"""
-    query = bp.current_request.query_params
-    #set default region: us-east-1
-    region = 'us-east-1' if not query else query.get('region')
-    instance_type = 'm5.xlarge' if not query else query.get('type')
+    try:
+        query = bp.current_request.query_params
+        #set default region: us-east-1
+        region = 'us-east-1' if not query else query.get('region')
+        instance_type = 'm5.xlarge' if not query else query.get('type')
+        
+        logger.debug(f"Processing detail page for region: {region}, instance: {instance_type}")
 
-    #aip docs url
-    apiDocsUrl = build_api_endpoint(
-        current_request=bp.current_app.current_request, 
-        request_path="api/docs"
-    )
+        #api docs url
+        apiDocsUrl = build_api_endpoint(
+            current_request=bp.current_app.current_request, 
+            request_path="api/docs"
+        )
 
-    region_list = list_ec2_regions() 
+        region_list = list_ec2_regions() 
 
-    context = {
-        'region' : region,
-        'region_list' : region_list,
-        # 'family_list' : family_list,
-        'instance_type' : instance_type,
-        'apiDocsUrl':apiDocsUrl
-    }
+        context = {
+            'region': region,
+            'region_list': region_list,
+            # 'family_list' : family_list,
+            'instance_type': instance_type,
+            'apiDocsUrl': apiDocsUrl
+        }
 
-    return Response(
-        body = render('chalicelib/web/detail.html', context),
-        status_code = 200, 
-        headers={"Content-Type": "text/html"}
-    )    
-
+        return Response(
+            body = render('chalicelib/web/detail.html', context),
+            status_code = 200, 
+            headers={"Content-Type": "text/html"}
+        )
+    except Exception as ex:
+        logger.error(f"Detail page rendering failed: {str(ex)}")
+        return Response(
+            body="Internal server error",
+            status_code=500,
+            headers={"Content-Type": "text/html"}
+        )
 
 
 @bp.route("/css/{file_name}", methods=["GET"])
 def get_main_css(file_name):
     """Get Web CSS Endpoint"""
-    css_file = file_name+'.css'
-    logger.info(f"Endpoint: Get CSS : {css_file} static file")
+    css_file = file_name + '.css'
     try:
         content = file.get_static_file(file_name=css_file)
         return Response(
@@ -149,17 +186,18 @@ def get_main_css(file_name):
             headers={"Content-Type": "text/css"},
         )
     except Exception as ex:
+        logger.error(f"Failed to get CSS file {css_file}: {str(ex)}")
         return Response(
             body=f"Failed request: {css_file}. {ex}",
             status_code=404,
             headers={"Content-Type": "text/html"},
         )
 
+
 @bp.route("/js/{file_name}", methods=["GET"])
 def get_main_js(file_name):
     """Get Javascript Endpoint"""
-    js_file = file_name+'.js'
-    logger.info(f"Endpoint: Get JS : {js_file} static file")
+    js_file = file_name + '.js'
     try:
         content = file.get_static_file(file_name=js_file)
         return Response(
@@ -168,11 +206,13 @@ def get_main_js(file_name):
             headers={"Content-Type": "application/javascript; charset=utf-8"},
         )
     except Exception as ex:
+        logger.error(f"Failed to get JS file {js_file}: {str(ex)}")
         return Response(
             body=f"Failed request: {js_file}. {ex}",
             status_code=404,
             headers={"Content-Type": "text/html"},
         )
+
 
 @bp.route("/favicon.ico", methods=["GET"])
 def get_favicon():

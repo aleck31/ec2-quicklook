@@ -1,10 +1,7 @@
-import logging
 from chalice import Blueprint
 
-
+# Create blueprint instance
 bp = Blueprint(__name__)
 
-# Get logger
-logger = logging.getLogger()
-
-from . import view
+# Import views after bp is defined to avoid circular imports
+__import__('chalicelib.web.view')
