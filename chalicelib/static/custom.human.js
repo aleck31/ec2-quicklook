@@ -1,170 +1,296 @@
-// Empty JS for your own code to be here
+/**
+ * EC2 QuickLook Frontend JavaScript
+ * Handles UI interactions and data fetching for EC2 instance and volume information
+ */
 
-// form-validation js,
-// disabling form submissions if there are invalid fields
-(function () {
-	'use strict';
+// Initialize the application namespace
+const EC2QuickLook = {
+    // Cache DOM elements
+    elements: {},
+    
+    // Cache for selected instance type
+    selectedType: 'm5.xlarge',
+    
+    // Default instance families
+    defaultFamilies: ['m5', 'm6g'],
 
-	window.addEventListener('load', function () {
-		// Fetch all the forms we want to apply custom Bootstrap validation styles to
-		var forms = document.getElementsByClassName('needs-validation');
+    /**
+     * Initialize the application
+     */
+    init() {
+        this.cacheElements();
+        this.bindEvents();
+        this.updateTypes();
+    },
 
-		// Loop over them and prevent submission
-		Array.prototype.filter.call(forms, function (form) {
-			form.addEventListener('submit', function (event) {
-				if (form.checkValidity() === false) {
-					event.preventDefault();
-					event.stopPropagation();
-				}
-				form.classList.add('was-validated')
-			}, false)
-		})
-	}, false)
-})();
+    /**
+     * Cache frequently used DOM elements
+     */
+    cacheElements() {
+        this.elements = {
+            arch: $('#arch'),
+            region: $('#region'),
+            family: $('#family'),
+            types: $('#types'),
+            btnQuery: $('#btnquery'),
+            forms: document.getElementsByClassName('needs-validation')
+        };
+    },
 
-var selected_type = 'm5.xlarge';
+    /**
+     * Bind event handlers
+     */
+    bindEvents() {
+        // Form validation
+        this.setupFormValidation();
+        
+        // Input change handlers
+        this.elements.arch.on('change', () => this.updateFamily());
+        this.elements.region.on('change', () => {
+            this.selectedType = this.elements.types.val();
+            this.updateTypes();
+        });
+        this.elements.family.on('change', () => this.updateTypes());
+        
+        // Query button handler
+        this.elements.btnQuery.on('click', () => {
+            this.queryInstance();
+            this.queryVolume();
+        });
+    },
 
-//jquery入口函数 
-$(function () {    
-    // 初始化 Instance Types 列表
-    updateTypes();
-	$("#arch").change(function () {
-		//update instance family
-        updateFamily();
-	});
+    /**
+     * Setup Bootstrap form validation
+     */
+    setupFormValidation() {
+        Array.prototype.filter.call(this.elements.forms, (form) => {
+            form.addEventListener('submit', (event) => {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    },
 
-	$("#region").change(function () {
-        selected_type = $("#types").val();
-		updateTypes();
-	});
+    /**
+     * Update instance family options based on selected architecture
+     */
+    updateFamily() {
+        const region = this.elements.region.val();
+        const arch = this.elements.arch.val();
 
-	$("#family").change(function () {
-        // selected_type = null;
-		updateTypes();
-	});
+        $.ajax({
+            url: "instance/family",
+            data: { region, arch },
+            dataType: "json",
+            beforeSend: () => this.showLoading(this.elements.family),
+            success: (result) => {
+                let familyOptions = ["<option value=''>Choose...</option>"];
+                
+                result.forEach(item => {
+                    const isDefault = this.defaultFamilies.includes(item.name);
+                    familyOptions.push(
+                        `<option ${isDefault ? 'selected' : ''} value="${item.name}">
+                            ${item.description}: ${item.name}
+                        </option>`
+                    );
+                    if (isDefault) this.updateTypes(item.name);
+                });
 
-	$("#btnquery").click(function () {
-		queryInstance();
-		queryVolume();
-	});
-});
+                this.elements.family.html(familyOptions.join(''));
+            },
+            error: (xhr, status, error) => {
+                console.error('Failed to fetch instance families:', error);
+                this.showError('Failed to load instance families');
+            },
+            complete: () => this.hideLoading(this.elements.family)
+        });
+    },
 
+    /**
+     * Update instance types based on selected family
+     * @param {string} [family] - Optional family parameter
+     */
+    updateTypes(family) {
+        const params = {
+            region: this.elements.region.val(),
+            arch: this.elements.arch.val(),
+            family: family || this.elements.family.val()
+        };
 
-//update instance family
-function updateFamily() {
-    var region = $("#region").val();
-    var arch = $("#arch").val();
-    $.getJSON("instance/family", { region: region, arch: arch },
-        function (result) {
-            let familyops = "<option value=''>Choose...</option>";
-            let default_family = ['m5','m6g'];
-            $.each(result, function (i, item) {
-                if ( default_family.indexOf(item.name) >= 0 ) { familyops += "<option selected value='" + item.name + "'>" + item.description + ": " + item.name + "</option>"; updateTypes(item.name);}
-                else { familyops += "<option value='" + item.name + "'>" + item.description + ": " + item.name + "</option>"; }                
-            });
-            $("#family").html(familyops);
+        $.ajax({
+            url: "instance/types",
+            data: params,
+            dataType: "json",
+            beforeSend: () => this.showLoading(this.elements.types),
+            success: (result) => {
+                let typeOptions = ["<option value=''>Choose...</option>"];
+                let unmatch = true;
+
+                result.forEach(item => {
+                    const isSelected = item.instanceType === this.selectedType;
+                    typeOptions.push(
+                        `<option ${isSelected ? 'selected' : ''} value="${item.instanceType}">
+                            ${item.instanceType}
+                        </option>`
+                    );
+                    if (isSelected) unmatch = false;
+                });
+
+                this.elements.types.html(typeOptions.join(''));
+                if (unmatch) this.elements.types.prop("selectedIndex", 1);
+            },
+            error: (xhr, status, error) => {
+                console.error('Failed to fetch instance types:', error);
+                this.showError('Failed to load instance types');
+            },
+            complete: () => this.hideLoading(this.elements.types)
+        });
+    },
+
+    /**
+     * Query instance information
+     */
+    queryInstance() {
+        const params = {
+            region: this.elements.region.val(),
+            type: this.elements.types.val(),
+            op: $('#operation').val()
+        };
+
+        $.ajax({
+            url: "product/instance",
+            data: params,
+            dataType: "json",
+            beforeSend: () => this.showLoading($('#instance')),
+            success: (result) => this.updateInstanceUI(result),
+            error: (xhr, status, error) => {
+                console.error('Failed to fetch instance data:', error);
+                this.showError('Failed to load instance information');
+            },
+            complete: () => this.hideLoading($('#instance'))
+        });
+    },
+
+    /**
+     * Query volume information
+     */
+    queryVolume() {
+        const params = {
+            region: this.elements.region.val(),
+            type: $('#voltypes').val(),
+            size: $('#volsize').val()
+        };
+
+        $.ajax({
+            url: "product/volume",
+            data: params,
+            dataType: "json",
+            beforeSend: () => this.showLoading($('#tbvolspec')),
+            success: (result) => this.updateVolumeUI(result),
+            error: (xhr, status, error) => {
+                console.error('Failed to fetch volume data:', error);
+                this.showError('Failed to load volume information');
+            },
+            complete: () => this.hideLoading($('#tbvolspec'))
+        });
+    },
+
+    /**
+     * Update instance information UI
+     * @param {Object} result - Instance data
+     */
+    updateInstanceUI(result) {
+        if ("listPrice" in result) {
+            $('#insprice').html(`${result.listPrice.pricePerUnit.currency} ${result.listPrice.pricePerUnit.value.toFixed(2)}`);
+            $('#insunit').html(result.listPrice.unit);
+            $('#insdate').html(result.listPrice.effectiveDate);
+            $('#insfamily').html(result.productMeta.instanceFamily);
+            $('#instenan').html(result.productMeta.tenancy);
+            $('#insloca').html(result.productMeta.location);
+            $('#insurl').attr('href', result.productMeta.introduceUrl);
+            $('#tbdetail').show();
+            $('#detailurl').attr('href', `detail?region=${this.elements.region.val()}&type=${this.elements.types.val()}`);
+        } else {
+            this.resetInstanceUI();
         }
-    );
+
+        this.updateTable('#tbhardware', result.hardwareSpecs);
+        this.updateTable('#tbsoftware', result.softwareSpecs);
+        this.updateTable('#tbinstorage', result.instanceSotrage);
+        this.updateTable('#tbfeature', result.productFeature);
+    },
+
+    /**
+     * Update volume information UI
+     * @param {Object} result - Volume data
+     */
+    updateVolumeUI(result) {
+        this.updateTable('#tbvolspec', result.productSpecs);
+        
+        $('#volprice').html(`${result.listPrice.pricePerUnit.currency} ${result.listPrice.pricePerUnit.value.toFixed(2)}`);
+        $('#volunit').html(result.listPrice.unit);
+        $('#voldate').html(result.listPrice.effectiveDate);
+        $('#voltype').html(result.productMeta.volumeType);
+        $('#usagetype').html(result.productMeta.usagetype);
+        $('#volmedia').html(result.productMeta.storageMedia);
+        $('#volurl').attr('href', result.productMeta.introduceUrl);
+    },
+
+    /**
+     * Reset instance UI to default state
+     */
+    resetInstanceUI() {
+        $('#insprice').html('unknown');
+        $('#insunit').html('Month');
+        $('#insdate').html('');
+        $('#insfamily').html('Not Found');
+        $('#instenan').html('');
+        $('#insloca').html('');
+        $('#insurl').attr('href', '');
+        $('#tbdetail').hide();
+    },
+
+    /**
+     * Update table content
+     * @param {string} tableId - Table selector
+     * @param {Object} data - Table data
+     */
+    updateTable(tableId, data) {
+        const rows = Object.entries(data).map(([key, value]) => 
+            `<tr><td>${key}</td><td>${value}</td></tr>`
+        );
+        $(tableId).html(rows.join(''));
+    },
+
+    /**
+     * Show loading indicator
+     * @param {jQuery} element - jQuery element
+     */
+    showLoading(element) {
+        element.addClass('loading').prop('disabled', true);
+    },
+
+    /**
+     * Hide loading indicator
+     * @param {jQuery} element - jQuery element
+     */
+    hideLoading(element) {
+        element.removeClass('loading').prop('disabled', false);
+    },
+
+    /**
+     * Show error message
+     * @param {string} message - Error message
+     */
+    showError(message) {
+        console.error(message);
+    }
 };
 
-//update instance types
-function updateTypes(family) {
-	var region = $("#region").val();
-	var arch = $("#arch").val();
-	var family = (typeof family === 'undefined') ? $("#family").val() : family;
-	$.getJSON(
-		"instance/types",
-		{ region: region, arch: arch, family: family },
-		function (result) {
-			let typeops = "<option value=''>Choose...</option>";
-            let unmatch = true;
-			$.each(result, function (i, item) {
-                if ( item.instanceType == selected_type ) { typeops += "<option selected value='" + item.instanceType + "'>" + item.instanceType + "</option>"; unmatch=false; }
-                else { typeops += "<option value='" + item.instanceType + "'>" + item.instanceType + "</option>"; }
-			});
-			$("#types").html(typeops);
-            if ( unmatch ) { $("#types").prop("selectedIndex", 1) }; 
-            //$('#types option:first').attr('selected','selected') //设置第一项选中
-		}
-	);
-};
-
-
-function queryInstance() {
-    var region = $("#region").val();
-    var operat = $("#operation").val();
-	var type = $("#types").val();
-	//invoke instance api
-	$.getJSON("product/instance", { region: region, type: type, op: operat },
-		function (result) {
-			//update instance price card
-			if ("listPrice" in result) {
-				$("#insprice").html(result.listPrice.pricePerUnit.currency + " " + result.listPrice.pricePerUnit.value.toFixed(2));
-				$("#insunit").html(result.listPrice.unit);
-				$("#insdate").html(result.listPrice.effectiveDate);
-				$("#insfamily").html(result.productMeta.instanceFamily);
-				$("#instenan").html(result.productMeta.tenancy);
-				$("#insloca").html(result.productMeta.location);
-				$("#insurl").attr('href', result.productMeta.introduceUrl);
-				$("#tbdetail").show();
-				$("#detailurl").attr('href', 'detail?region=' + region + '&type=' + type);
-			} else {
-				$("#insprice").html('unknown');
-				$("#insunit").html('Month');
-				$("#insdate").html(null);
-				$("#insfamily").html('Not Found');
-				$("#instenan").html(null);
-				$("#insloca").html(null);
-				$("#insurl").attr('href', '');
-				$("#tbdetail").hide();
-			};
-
-			var tabhw = '';
-			$.each(result.hardwareSpecs, function (k, v) {
-				tabhw += "<tr><td>" + k + "</td><td>" + v + "</td></tr>";
-			});
-			$("#tbhardware").html(tabhw);
-
-			var tabsw = '';
-			$.each(result.softwareSpecs, function (k, v) {
-				tabsw += "<tr><td>" + k + "</td><td>" + v + "</td></tr>";
-			});
-			$("#tbsoftware").html(tabsw);
-
-			var tabisto = '';
-			$.each(result.instanceSotrage, function (k, v) {
-				tabisto += "<tr><td>" + k + "</td><td>" + v + "</td></tr>";
-			});
-			$("#tbinstorage").html(tabisto);
-
-			var tabfeat = '';
-			$.each(result.productFeature, function (k, v) {
-				tabfeat += "<tr><td>" + k + "</td><td>" + v + "</td></tr>";
-			});
-			$("#tbfeature").html(tabfeat);
-		});
-};
-
-function queryVolume() {
-	var region = $("#region").val();
-	var type = $("#voltypes").val();
-	var size = $("#volsize").val();
-	//invoke volume api
-	$.getJSON("product/volume", { region: region, type: type, size: size },
-		function (result) {
-			var tabvol = '';
-			$.each(result.productSpecs, function (k, v) {
-				tabvol += "<tr><td>" + k + "</td><td>" + v + "</td></tr>";
-			});
-			$("#tbvolspec").html(tabvol);
-
-			//update volume price card
-			$("#volprice").html(result.listPrice.pricePerUnit.currency + " " + result.listPrice.pricePerUnit.value.toFixed(2));
-			$("#volunit").html(result.listPrice.unit);
-			$("#voldate").html(result.listPrice.effectiveDate);
-			$("#voltype").html(result.productMeta.volumeType);
-			$("#usagetype").html(result.productMeta.usagetype);
-			$("#volmedia").html(result.productMeta.storageMedia);
-			$("#volurl").attr('href', result.productMeta.introduceUrl);
-		});
-};
+// Initialize application when DOM is ready
+$(function() {
+    EC2QuickLook.init();
+});
