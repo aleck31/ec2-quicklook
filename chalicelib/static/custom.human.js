@@ -219,7 +219,7 @@ const EC2QuickLook = {
 
         this.updateTable('#tbhardware', result.hardwareSpecs);
         this.updateTable('#tbsoftware', result.softwareSpecs);
-        this.updateTable('#tbinstorage', result.instanceSotrage);
+        this.updateTable('#tbinstorage', result.instanceStorage);
         this.updateTable('#tbfeature', result.productFeature);
     },
 

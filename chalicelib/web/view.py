@@ -97,7 +97,7 @@ def index():
             "hardwareSpecs": {},
             "softwareSpecs": {},
             "productFeature": {},
-            "instanceSotrage": {},
+            "instanceStorage": {},
             "listPrice": { "pricePerUnit": {'currency':"USD",}, }
         }
         volume = {
