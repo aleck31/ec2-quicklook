@@ -1,20 +1,23 @@
 import ast
 from functools import lru_cache
+import boto3
+from botocore.config import Config
 from typing import Dict, List, Any, Optional
 from chalicelib.config import load_config
-from app import logger  # Use the centralized logger from app.py
+from chalicelib.models import (
+    EC2ServiceError, PricingServiceError,
+    ProductResponse, InstanceProductParams, VolumeProductParams
+)
+from app import logger
+
 
 # Define EC2 Product Page URLs
 INSTANCE_TYPE_URL = 'https://aws.amazon.com/cn/ec2/instance-types/'
 VOLUME_TYPE_URL = 'https://aws.amazon.com/cn/ebs/volume-types/'
 
-class EC2Error(Exception):
-    """Base exception for EC2-related errors"""
-    pass
-
 class EC2Client:
     """Client for EC2-related operations"""
-    def __init__(self, boto3_client) -> None:
+    def __init__(self, boto3_client: boto3.client) -> None:
         self._boto3_client = boto3_client
         self.region = boto3_client._client_config.region_name
         logger.debug(f"Initialized EC2Client for region: {self.region}")
@@ -26,7 +29,7 @@ class EC2Client:
             return load_config('operation')
         except Exception as ex:
             logger.error(f"Failed to load operations config: {str(ex)}")
-            raise EC2Error(f"Failed to load operations config: {str(ex)}")
+            raise EC2ServiceError(f"Failed to load operations config: {str(ex)}")
 
     @lru_cache(maxsize=128)
     def list_instance_family(self, architecture: str) -> List[Dict[str, Any]]:
@@ -46,7 +49,7 @@ class EC2Client:
             return family_list
         except Exception as ex:
             logger.error(f"Failed to load instance families: {str(ex)}")
-            raise EC2Error(f"Failed to load instance families: {str(ex)}")
+            raise EC2ServiceError(f"Failed to load instance families: {str(ex)}")
 
     def get_instance_types(self, architecture: str, instance_family: str) -> List[Dict[str, str]]:
         """Get EC2 instance types"""
@@ -80,7 +83,9 @@ class EC2Client:
 
         except Exception as ex:
             logger.error(f"Failed to get instance types: {str(ex)}")
-            raise EC2Error(f"Failed to get instance types: {str(ex)}")
+            if isinstance(ex, boto3.exceptions.Boto3Error):
+                raise EC2ServiceError(str(ex), error_code=ex.__class__.__name__)
+            raise EC2ServiceError(f"Failed to get instance types: {str(ex)}")
 
     def get_instance_detail(self, instance_type: str) -> Dict[str, Any]:
         """Get detailed information about an EC2 instance type"""
@@ -92,13 +97,15 @@ class EC2Client:
             
             if not instances:
                 logger.warning(f"Instance type not found: {instance_type}")
-                raise EC2Error(f"Instance type {instance_type} not found")
+                raise EC2ServiceError(f"Instance type {instance_type} not found", error_code="NOT_FOUND")
                 
             return instances[0]
 
         except Exception as ex:
             logger.error(f"Failed to get instance details: {str(ex)}")
-            raise EC2Error(f"Failed to get instance details: {str(ex)}")
+            if isinstance(ex, boto3.exceptions.Boto3Error):
+                raise EC2ServiceError(str(ex), error_code=ex.__class__.__name__)
+            raise EC2ServiceError(f"Failed to get instance details: {str(ex)}")
 
 
 class PricingClient:
@@ -136,7 +143,7 @@ class PricingClient:
             }
         except Exception as ex:
             logger.error(f"Failed to get service codes: {str(ex)}")
-            raise EC2Error(f"Failed to get service codes: {str(ex)}")
+            raise PricingServiceError(f"Failed to get service codes: {str(ex)}")
 
     @lru_cache(maxsize=128)
     def get_service_attributes(self, service_code: str = 'AmazonEC2') -> Dict[str, Any]:
@@ -149,7 +156,7 @@ class PricingClient:
             
             if not services:
                 logger.warning(f"Service not found: {service_code}")
-                raise EC2Error(f"Service {service_code} not found")
+                raise PricingServiceError(f"Service {service_code} not found")
                 
             attributes = services[0].get('AttributeNames', [])
             return {
@@ -158,7 +165,7 @@ class PricingClient:
             }
         except Exception as ex:
             logger.error(f"Failed to get service attributes: {str(ex)}")
-            raise EC2Error(f"Failed to get service attributes: {str(ex)}")
+            raise PricingServiceError(f"Failed to get service attributes: {str(ex)}")
 
     @lru_cache(maxsize=128)
     def get_attribute_values(
@@ -191,39 +198,35 @@ class PricingClient:
         
         except Exception as ex:
             logger.error(f"Failed to get attribute values: {str(ex)}")
-            raise EC2Error(f"Failed to get attribute values: {str(ex)}")
+            raise PricingServiceError(f"Failed to get attribute values: {str(ex)}")
 
-    def get_product_instance(
-        self,
-        region: str,
-        instance_type: str,
-        operation: str,
-        option: str = 'OnDemand',
-        tenancy: str = 'Shared'
-    ) -> Dict[str, Any]:
+    def get_product_instance(self, params: InstanceProductParams) -> ProductResponse:
         """Get EC2 instance Attributes and ListPrice [unit: Month]"""
         try:
+            # Build required filters
+            filters = [
+                {'Type': 'TERM_MATCH', 'Field': 'locationType', 'Value': 'AWS Region'},
+                {'Type': 'TERM_MATCH', 'Field': 'ServiceCode', 'Value': 'AmazonEC2'},
+                # {'Type': 'TERM_MATCH', 'Field': 'productFamily', 'Value': 'Compute Instance'},
+                {'Type': 'TERM_MATCH', 'Field': 'capacitystatus','Value': 'UnusedCapacityReservation'}, 
+                {'Type': 'TERM_MATCH', 'Field': 'RegionCode', 'Value': params['region']},
+                {'Type': 'TERM_MATCH', 'Field': 'instanceType', 'Value': params['type']},
+                {'Type': 'TERM_MATCH', 'Field': 'operation', 'Value': params['op']},
+                # {'Type': 'TERM_MATCH', 'Field': 'operatingSystem', 'Value': 'Linux'},
+                # {'Type': 'TERM_MATCH', 'Field': 'preInstalledSw', 'Value': 'NA'},
+                {'Type': 'TERM_MATCH', 'Field': 'marketoption','Value': params.get('option', 'OnDemand')},
+                {'Type': 'TERM_MATCH', 'Field': 'tenancy', 'Value': params.get('tenancy', 'Shared')}
+            ]
+
             result = self._boto3_client.get_products(
                 ServiceCode='AmazonEC2',
-                Filters=[
-                    {'Type': 'TERM_MATCH', 'Field': 'locationType','Value': 'AWS Region'},
-                    {'Type': 'TERM_MATCH', 'Field': 'ServiceCode','Value': 'AmazonEC2'},
-                    # {'Type': 'TERM_MATCH', 'Field': 'productFamily','Value': 'Compute Instance'},                    
-                    {'Type': 'TERM_MATCH', 'Field': 'capacitystatus','Value': 'UnusedCapacityReservation'},         
-                    {'Type': 'TERM_MATCH', 'Field': 'RegionCode','Value': region},
-                    {'Type': 'TERM_MATCH', 'Field': 'instanceType','Value': instance_type},
-                    {'Type': 'TERM_MATCH', 'Field': 'marketoption','Value': option},
-                    {'Type': 'TERM_MATCH', 'Field': 'tenancy','Value': tenancy},                    
-                    {'Type': 'TERM_MATCH', 'Field': 'operation','Value': operation},
-                    # {'Type': 'TERM_MATCH', 'Field': 'operatingSystem','Value': os},
-                    # {'Type': 'TERM_MATCH', 'Field': 'preInstalledSw','Value': soft},
-                ]
+                Filters=filters
             )
 
             price_list = result.get('PriceList', [])
             if len(price_list) != 1:
                 logger.warning("Invalid parameter combination for product instance")
-                raise EC2Error('Invalid parameter combination')
+                raise PricingServiceError('Invalid parameter combination', error_code="INVALID_PARAMS")
 
             # Convert the string to a dictionary using ast.literal_eval()
             result_dict = ast.literal_eval(price_list[0])
@@ -234,7 +237,7 @@ class PricingClient:
                 'productMeta': {
                     'instanceFamily': attributes['instanceFamily'],
                     'currentGeneration': attributes['currentGeneration'],
-                    'introduceUrl': f"{INSTANCE_TYPE_URL}{instance_type.split('.')[0]}",
+                    'introduceUrl': f"{INSTANCE_TYPE_URL}{params['type'].split('.')[0]}",
                     'regionCode': attributes['regionCode'],
                     'location': attributes['location'],
                     'tenancy': attributes['tenancy'],
@@ -276,7 +279,11 @@ class PricingClient:
             }
 
             # Extract and calculate pricing information
-            terms = next(iter(result_dict['terms'].get(option).values()))
+            option_type = params.get('option', 'OnDemand')
+            terms_dict = result_dict.get('terms', {}).get(option_type, {})
+            if not terms_dict:
+                raise PricingServiceError(f"No pricing terms found for option: {option_type}", error_code="INVALID_OPTION")
+            terms = next(iter(terms_dict.values()))
             price_dimensions = terms['priceDimensions']
             price_info = next(iter(price_dimensions.values()))
             # Extract unit price and currency
@@ -298,32 +305,31 @@ class PricingClient:
 
         except Exception as ex:
             logger.error(f"Failed to get instance product data: {str(ex)}")
-            raise EC2Error(f"Failed to get instance product data: {str(ex)}")
+            if isinstance(ex, boto3.exceptions.Boto3Error):
+                raise PricingServiceError(str(ex), error_code=ex.__class__.__name__)
+            raise PricingServiceError(f"Failed to get instance product data: {str(ex)}")
 
-    def get_product_volume(
-        self,
-        region: str,
-        volume_type: str,
-        volume_size: str,
-        option: str = 'OnDemand'
-    ) -> Dict[str, Any]:
+    def get_product_volume(self, params: VolumeProductParams) -> ProductResponse:
         """Get EBS volume Attributes and ListPrice [unit: GB-Mo]"""
         try:
+            # Build filters, excluding None values
+            filters = [
+                {'Type': 'TERM_MATCH', 'Field': 'locationType', 'Value': 'AWS Region'},
+                {'Type': 'TERM_MATCH', 'Field': 'ServiceCode', 'Value': 'AmazonEC2'},
+                {'Type': 'TERM_MATCH', 'Field': 'productFamily', 'Value': 'Storage'},
+                {'Type': 'TERM_MATCH', 'Field': 'RegionCode', 'Value': params['region']},
+                {'Type': 'TERM_MATCH', 'Field': 'volumeApiName', 'Value': params['type']}
+            ]
+
             result = self._boto3_client.get_products(
                 ServiceCode='AmazonEC2',
-                Filters=[
-                    {'Type': 'TERM_MATCH', 'Field': 'locationType', 'Value': 'AWS Region'},
-                    {'Type': 'TERM_MATCH', 'Field': 'ServiceCode', 'Value': 'AmazonEC2'},
-                    {'Type': 'TERM_MATCH', 'Field': 'productFamily', 'Value': 'Storage'},
-                    {'Type': 'TERM_MATCH', 'Field': 'RegionCode', 'Value': region},
-                    {'Type': 'TERM_MATCH', 'Field': 'volumeApiName', 'Value': volume_type},
-                ]
+                Filters=filters
             )
 
             price_list = result.get('PriceList', [])
             if len(price_list) != 1:
                 logger.warning("Invalid parameter combination for product volume")
-                raise EC2Error('Invalid parameter combination')
+                raise PricingServiceError('Invalid parameter combination', error_code="INVALID_PARAMS")
 
             result_dict = ast.literal_eval(price_list[0])
             attributes = result_dict['product']['attributes']
@@ -334,7 +340,7 @@ class PricingClient:
                     'volumeType': attributes['volumeType'],
                     'location': attributes['location'],
                     'storageMedia': attributes['storageMedia'],
-                    'introduceUrl': f"{VOLUME_TYPE_URL}#{volume_type}",
+                    'introduceUrl': f"{VOLUME_TYPE_URL}#{params['type']}",
                     'usagetype': attributes['usagetype'],
                 },
                 'productSpecs': {
@@ -346,7 +352,11 @@ class PricingClient:
             }
 
             # Extract and calculate pricing information
-            terms = next(iter(result_dict['terms'].get(option).values()))
+            option_type = params.get('option', 'OnDemand')
+            terms_dict = result_dict.get('terms', {}).get(option_type, {})
+            if not terms_dict:
+                raise PricingServiceError(f"No pricing terms found for option: {option_type}", error_code="INVALID_OPTION")
+            terms = next(iter(terms_dict.values()))
             price_dimensions = terms['priceDimensions']
             price_info = next(iter(price_dimensions.values()))
             
@@ -358,7 +368,7 @@ class PricingClient:
                 'unit': 'Month',
                 'pricePerUnit': {
                     'currency': currency,
-                    'value': value * float(volume_size)
+                    'value': value * float(params['size'])
                 },
                 'effectiveDate': terms['effectiveDate']
             })
@@ -368,4 +378,6 @@ class PricingClient:
 
         except Exception as ex:
             logger.error(f"Failed to get volume product data: {str(ex)}")
-            raise EC2Error(f"Failed to get volume product data: {str(ex)}")
+            if isinstance(ex, boto3.exceptions.Boto3Error):
+                raise PricingServiceError(str(ex), error_code=ex.__class__.__name__)
+            raise PricingServiceError(f"Failed to get volume product data: {str(ex)}")

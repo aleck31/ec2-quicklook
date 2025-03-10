@@ -1,118 +1,100 @@
 # EC2 QuickLook
-A web tool that help you to quickly query EC2 instance information, including: configuration, specifications, features and monthly on-demand price for reference. 
 
-<br>
+A web tool that helps you quickly query EC2 instance information, including configuration, specifications, features, and monthly on-demand price for reference.
+
+## Features
+
+- 🔍 Query EC2 instance details and OD pricing
+- 💾 EBS volume OD pricing
+- 🌐 Support for all AWS regions
+- 📊 Detailed instance specifications
+- 🚀 Serverless deployment with AWS Chalice
+- 📝 Swagger UI API documentation
 
 ## What is this project?
-This is an example project of using aws chalice for python development.  It contains a simple frontend page, backend API, and integrates **swagger ui** to visualize the API's resources. 
-You can deploy it to AWS cloud with one command when you complete the code development of all functions and interfaces. No server, container, storage etc. resources needed for deployment. 
-Pretty simple! 
 
-<br>
+This is an demonstration project for [AWS Chalice](https://aws.github.io/chalice/), a micoservice framework for writing serverless appications in python. The project features a responsive web frontend, RESTful backend APIs, and integrated Swagger UI for API documentation.
 
-## AWS Chalice
+You can deploy it to the AWS cloud with a single command. No servers, containers, or storage resources are required for deployment.
 
-[AWS Chalice](https://aws.github.io/chalice/) is a micoservice framework for writing serverless appications in python. User can quickly create and deploy applications to AWS environment.
+## Architecture
 
-- [AWS Chalice Tutorial & Documentation](https://aws.github.io/chalice/tutorials/index.html)
+- **Infrastructure**: AWS Lambda + API Gateway (managed by Chalice)
+- **Storage**: Amazon DynamoDB
+- **Frontend**: HTML/CSS/JavaScript with Bootstrap
+- **Backend**: Python with AWS Chalice framework
+- **API Documentation**: Swagger UI
 
-<br>
+## Prerequisites
 
-## Prerequisite
+- [Python](https://www.python.org/downloads/release/python-3100/) >= 3.10
+- [AWS Chalice](https://aws.github.io/chalice/)
+- [AWS Credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) （with appropriate permissions)
 
-- [Visual Studio Code](#)
-- [Python](https://www.python.org/downloads/release/python-381/) >= 3.8.1
-- [AWS Credential](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+## Installation
 
-<br>
-
-## Install
-
-Clone Git repository to local and navigate to the project folder
-
+1. Clone the repository:
 ```bash
-
-❯ git clone https://github.com/aleck31/ec2-quicklook.git
-
-❯ cd ec2-quicklook
-
+git clone https://github.com/aleck31/ec2-quicklook.git
+cd ec2-quicklook
 ```
 
-Setup Python Virtual Environment
-
+2. Set up Python virtual environment:
 ```bash
+python -m venv .venv
 
-❯ python -m venv .env
-
-```
-
-Activate Python Virtual Environment
-
-```bash
 # Linux/Mac
-$ source .venv/bin/Activate
+source .venv/bin/activate
 
-# Window
-❯ .venv/Scripts/Activate.ps1
+# Windows
+.venv/Scripts/Activate.ps1
 ```
 
-Install Required Python Library
-
+3. Install required dependencies:
 ```bash
-
-❯ pip install -r requirements.txt
-
+pip install -r requirements.txt
 ```
-Create Resources （default --stage dev）
+
+4. Create required AWS resources:
 ```bash
-
-❯ python create-resources.py
-
+# Create resources (default --stage dev)
+python create-resources.py
 ```
-Run Locally for Experience [option]
 
+## Local Development
+
+1. Run the application locally:
 ```bash
-
-❯ chalice local 
-
+chalice local
 ```
- 
-Deploy To AWS
 
+2. Access the application:
+- Main application: http://127.0.0.1:8000
+- API documentation: http://127.0.0.1:8000/api/docs
+
+## Deployment
+
+Deploy to AWS:
 ```bash
+chalice deploy
 
-❯ chalice deploy 
-
+# Example output:
 Updating lambda function: ec2-quicklook-dev
 Updating rest API
 Resources deployed:
   - Lambda ARN: arn:aws:lambda:us-east-1::function:ec2-quicklook-dev
   - Rest API URL: https://...execute-api.us-east-1.amazonaws.com/api/
-
 ```
 
-You should see a familiar [Swagger UI](https://swagger.io/tools/swagger-ui/) at the docs endpoint like this:  
-https://...execute-api.us-east-1.amazonaws.com/api/docs
+After deployment, you can access:
+- Main application: https://...execute-api.us-east-1.amazonaws.com/api/
+- API documentation: https://...execute-api.us-east-1.amazonaws.com/api/docs
 
-<br>
-
-## Troubleshooting
-
-### Access denied
-If you got an "AccessDeniedException" error, pls ensure that the correct permissions are configured for lambda's service role. You can refer to example/**role_policy.json** to update the lambda role permissions.
-
-### Query in AWS China Region
-If you encounter an error when querying AWS China region, please make sure you have an AWS China account, and save the credentials in secrets manager, then replace the value of **SECRET_NAME** in the config.json file.
-
-
-
-<br>
-
-## Environment Setup
+## Environment Configuration
 
 ### Log Level
 
-Log level is controlled by `ENV_LOG_LEVEL` environment variables. `.chalice\config.json`
+Log level is controlled by `ENV_LOG_LEVEL` environment variable in `.chalice/config.json`:
 
 - CRITICAL
 - ERROR
@@ -121,13 +103,40 @@ Log level is controlled by `ENV_LOG_LEVEL` environment variables. `.chalice\conf
 - DEBUG
 - NOTSET
 
-- Reference: [logging level](https://docs.python.org/3/library/logging.html#levels)
+Reference: [Python logging levels](https://docs.python.org/3/library/logging.html#levels)
 
-<br>
+### IAM Role Policy
 
-### Custom IAM Role Policy
+You can customize the IAM role policy for your project:
 
-You can customize the IAM role policy with your project.
+- [AWS Chalice IAM Documentation](https://aws.github.io/chalice/topics/configfile#iam-policy-file)
+- [AWS IAM Policy Documentation](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies.html)
 
-- [AWS Chalice Document](https://aws.github.io/chalice/topics/configfile#iam-policy-file)
-- [AWS IAM Policy](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies.html)
+## Troubleshooting
+
+### Access Denied
+If you encounter an "AccessDeniedException", ensure that the correct permissions are configured for the Lambda service role. Refer to `example/role_policy.json` to update the Lambda role permissions.
+
+### AWS China Region
+For AWS China region queries:
+1. Ensure you have an AWS China account
+2. Save the credentials in AWS Secrets Manager
+3. Update the `SECRET_NAME` in `config.json`
+
+### Local Development
+Common issues and solutions:
+
+1. **DynamoDB Connection**: Ensure your AWS credentials have DynamoDB access permissions
+2. **API Gateway**: Local development uses a mock API Gateway, some features might behave differently
+3. **Environment Variables**: Check `.chalice/config.json` for correct environment variable configuration
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- [AWS Chalice Tutorial](https://aws.github.io/chalice/tutorials/index.html) - Python Serverless Framework
+- [AWS Pricing API](https://aws.amazon.com/aws-cost-management/aws-price-list-api/) - EC2 Pricing Information
+- [Bootstrap](https://getbootstrap.com/) - Frontend Framework
+- [Swagger UI](https://swagger.io/tools/swagger-ui/) - API Documentation

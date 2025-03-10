@@ -2,20 +2,24 @@ import boto3
 import ast
 import os
 from functools import lru_cache
+from datetime import datetime, timedelta
 from chalicelib.sdk import PricingClient, EC2Client
+from chalicelib.models import AWSServiceError, EC2ServiceError, PricingServiceError
 from chalice.app import Response, BadRequestError
 from app import logger
 from . import bp
 
-
 _PRICING_CLIENT = None
 _EC2_CLIENT = None
 
-class ClientError(Exception):
-    """Base exception for Client-specific errors"""
-    def __init__(self, message: str, error_code: str = "CLIENT_ERROR"):
-        super().__init__(message, status_code=400, error_code=error_code)
-        logger.warning(f"Client error occurred: {error_code} - {message}")
+def get_cache_headers(max_age: int = 3600) -> dict:
+    """Generate cache control headers with specified max age"""
+    expires = datetime.now() + timedelta(seconds=max_age)
+    return {
+        'Cache-Control': f'public, max-age={max_age}',
+        'Expires': expires.strftime('%a, %d %b %Y %H:%M:%S GMT'),
+        'Content-Type': 'application/json'
+    }
 
 
 @lru_cache(maxsize=128)
@@ -50,7 +54,7 @@ def get_cn_credentials():
         return ast.literal_eval(secret_string)
     except Exception as e:
         logger.error(f"Failed to get China region credentials: {str(e)}")
-        raise ClientError("Failed to access China region credentials")
+        raise AWSServiceError("Failed to access China region credentials")
 
 
 @lru_cache(maxsize=128)
@@ -79,7 +83,7 @@ def get_ec2_client(region: str = 'ap-southeast-1') -> EC2Client:
                 )
         except Exception as e:
             logger.error(f"Failed to initialize EC2 client: {str(e)}")
-            raise ClientError("Failed to initialize EC2 service")
+            raise EC2ServiceError("Failed to initialize EC2 service")
         return _EC2_CLIENT
 
 
@@ -94,18 +98,37 @@ def get_product_instance():
     try:
         logger.debug(f"Getting product instance info for region: {query.get('region')}, type: {query.get('type')}")
         pclient = get_pricing_client()
-        resp = pclient.get_product_instance(
-            region=query['region'],
-            instance_type=query['type'],
-            operation=query['op']
-        )
+        # Only include required parameters
+        params = {
+            'region': query['region'],
+            'type': query['type'],
+            'op': query['op']
+        }
+        # Only add optional parameters if they have non-empty values
+        if query.get('option'):
+            params['option'] = query['option']
+        if query.get('tenancy'):
+            params['tenancy'] = query['tenancy']
+            
+        resp = pclient.get_product_instance(params)
         return Response(
             body=resp,
-            headers={"Content-Type": "application/json"}
+            headers=get_cache_headers()
+        )
+    except (EC2ServiceError, PricingServiceError) as ex:
+        status_code = 400 if ex.error_code in ['INVALID_PARAMS', 'NOT_FOUND'] else 500
+        return Response(
+            body={'error': ex.service, 'message': str(ex), 'code': ex.error_code},
+            status_code=status_code,
+            headers={'Content-Type': 'application/json'}
         )
     except Exception as ex:
-        logger.error(f"Failed to get instance product data: {str(ex)}")
-        raise ClientError(str(ex))
+        logger.error(f"Unexpected error: {str(ex)}")
+        return Response(
+            body={'error': 'InternalServerError', 'message': str(ex)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
 
 
 @bp.route('/product/volume', methods=['GET'], cors=True, authorizer=None)
@@ -119,18 +142,35 @@ def get_product_volume():
     try:
         logger.debug(f"Getting product volume info for region: {query.get('region')}, type: {query.get('type')}")
         pclient = get_pricing_client()
-        resp = pclient.get_product_volume(
-            region=query['region'],
-            volume_type=query['type'],
-            volume_size=query['size']
-        )
+        # Only include required parameters
+        params = {
+            'region': query['region'],
+            'type': query['type'],
+            'size': query['size']
+        }
+        # Only add optional parameters if they have non-empty values
+        if query.get('option'):
+            params['option'] = query['option']
+            
+        resp = pclient.get_product_volume(params)
         return Response(
             body=resp,
-            headers={"Content-Type": "application/json"}
+            headers=get_cache_headers()
+        )
+    except (EC2ServiceError, PricingServiceError) as ex:
+        status_code = 400 if ex.error_code in ['INVALID_PARAMS', 'NOT_FOUND'] else 500
+        return Response(
+            body={'error': ex.service, 'message': str(ex), 'code': ex.error_code},
+            status_code=status_code,
+            headers={'Content-Type': 'application/json'}
         )
     except Exception as ex:
-        logger.error(f"Failed to get volume product info: {str(ex)}")
-        raise ClientError(str(ex))
+        logger.error(f"Unexpected error: {str(ex)}")
+        return Response(
+            body={'error': 'InternalServerError', 'message': str(ex)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
 
 
 @bp.route('/instance/{res}', methods=['GET'], cors=True, authorizer=None)
@@ -166,18 +206,29 @@ def get_param_list(res: str):
             resp = eclient.list_usage_operations()
         else:
             logger.error(f"Invalid resource type requested: {res}")
-            raise ClientError(
+            raise EC2ServiceError(
                 f"Invalid resource type: {res}",
                 error_code="INVALID_RESOURCE"
             )
 
+        # Use longer cache for relatively static data
+        max_age = 86400 if res in ['family', 'operation'] else 3600
         return Response(
             body=resp,
-            headers={"Content-Type": "application/json"}
+            headers=get_cache_headers(max_age)
         )
     
-    except ClientError:
-        raise
+    except (EC2ServiceError, PricingServiceError) as ex:
+        status_code = 400 if ex.error_code in ['INVALID_PARAMS', 'NOT_FOUND'] else 500
+        return Response(
+            body={'error': ex.service, 'message': str(ex), 'code': ex.error_code},
+            status_code=status_code,
+            headers={'Content-Type': 'application/json'}
+        )
     except Exception as ex:
-        logger.error(f"Failed to get instance '{res}': {str(ex)}")
-        raise ClientError(str(ex))
+        logger.error(f"Unexpected error: {str(ex)}")
+        return Response(
+            body={'error': 'InternalServerError', 'message': str(ex)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )

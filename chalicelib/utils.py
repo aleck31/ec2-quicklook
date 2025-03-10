@@ -1,10 +1,13 @@
 import os
 import json
+import logging
 from typing import Optional, Dict
 from urllib.parse import urlencode
 from chalice.app import Request
-from app import logger
 
+
+# Set up logger
+logger = logging.getLogger('ec2-quicklook')
 
 def load_json_file(filename: str):
     """Load example config list from json file"""    

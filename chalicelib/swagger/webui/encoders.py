@@ -12,7 +12,7 @@ from pydantic import BaseModel
 SetIntStr = Set[Union[int, str]]
 DictIntStrAny = Dict[Union[int, str], Any]
 
-# 将各种 Python 对象转换为 JSON 兼容的格式
+# Converting Python Objects to JSON-Compatible Formats
 def jsonable_encoder(
     obj: Any,
     include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
