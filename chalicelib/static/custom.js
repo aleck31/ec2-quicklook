@@ -26,9 +26,14 @@ new Vue({
     familyOptions: [],
     typeOptions: [],
     voltypeOptions: [],
-    detailUrl: null
+    detailUrl: null,
+    familyState: null,
+    familyFeedback: ''
   },
   computed: {
+    isButtonDisabled() {
+      return !this.form.type || this.loading || this.familyState === false;
+    },
     priceChange() {
       if (!this.instance || !this.previousPrice) return null;
       const currentPrice = this.instance.listPrice.pricePerUnit.value;
@@ -120,6 +125,10 @@ new Vue({
       }
     },
     async updateFamily() {
+      // Reset validation state
+      this.familyState = null;
+      this.familyFeedback = '';
+      
       try {
         const response = await axios.get('instance/family', {
           params: {
@@ -141,12 +150,18 @@ new Vue({
         }
       } catch (error) {
         console.error('Error fetching families:', error);
+        this.familyState = false;
+        this.familyFeedback = 'Failed to load instance families. Please try again.';
       }
     },
     async updateTypes() {
       if (!this.form.family) return;
       
       try {
+        // Store current size suffix before updating types
+        const currentType = this.form.type;
+        const currentSizeSuffix = currentType ? currentType.match(/[a-z]+\d*\.(.+)/)?.[1] : null;
+
         const response = await axios.get('instance/types', {
           params: {
             region: this.form.region,
@@ -154,18 +169,70 @@ new Vue({
             family: this.form.family
           }
         });
-        this.typeOptions = response.data.map(item => ({
-          value: item.instanceType,
-          text: item.instanceType
-        }));
-        // Sort instance types by size
-        this.typeOptions.sort((a, b) => {
-          const sizeA = a.value.match(/\d+/)[0];
-          const sizeB = b.value.match(/\d+/)[0];
-          return parseInt(sizeA) - parseInt(sizeB);
-        });
+
+        if (response.data && response.data.length > 0) {
+          this.typeOptions = response.data.map(item => ({
+            value: item.instanceType,
+            text: item.instanceType
+          }));
+          // Sort instance types by size
+          this.typeOptions.sort((a, b) => {
+            // Define size order mapping
+            const sizeOrder = {
+              'nano': 1, 'micro': 2, 'small': 3, 'medium': 4, 'large': 5,
+              'xlarge': 6, '2xlarge': 7, '3xlarge': 8, '4xlarge': 9,
+              '6xlarge': 10, '8xlarge': 11, '9xlarge': 12, '10xlarge': 13,
+              '12xlarge': 14, '16xlarge': 15, '18xlarge': 16, '24xlarge': 17,
+              '32xlarge': 18, '48xlarge': 19, 'metal': 20
+            };
+            
+            // Extract size suffix (e.g., 'large', 'xlarge', '2xlarge')
+            const getSizeSuffix = (type) => {
+              const match = type.match(/[a-z]+\d*\.(.+)/);
+              return match ? match[1] : '';
+            };
+            
+            const sizeA = getSizeSuffix(a.value);
+            const sizeB = getSizeSuffix(b.value);
+            
+            return (sizeOrder[sizeA] || 0) - (sizeOrder[sizeB] || 0);
+          });
+
+          // Set instance type with priority:
+          // 1. Same size as current (e.g., if current is m5.4xlarge, try to find *.4xlarge)
+          // 2. .large instance
+          // 3. First available option
+          let selectedType;
+          if (currentSizeSuffix) {
+            selectedType = this.typeOptions.find(t => t.value.endsWith(`.${currentSizeSuffix}`));
+          }
+          if (!selectedType) {
+            selectedType = this.typeOptions.find(t => t.value.endsWith('.large')) || this.typeOptions[0];
+          }
+          this.form.type = selectedType.value;
+          this.familyState = true;
+          this.familyFeedback = '';
+        } else {
+          // Clear type options and show warning when no instance types are available
+          this.typeOptions = [{
+            value: '',
+            text: 'No instance types available',
+            disabled: true
+          }];
+          this.form.type = '';
+          this.familyState = false;
+          this.familyFeedback = `"${this.form.family}" is not supported in this region.`;
+        }
       } catch (error) {
         console.error('Error fetching types:', error);
+        this.typeOptions = [{
+          value: '',
+          text: 'Error loading instance types',
+          disabled: true
+        }];
+        this.form.type = '';
+        this.familyState = false;
+        this.familyFeedback = 'Failed to load instance types. Please try again.';
       }
     },
     addToComparison() {

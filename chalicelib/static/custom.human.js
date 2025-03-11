@@ -1,296 +1,297 @@
-/**
- * EC2 QuickLook Frontend JavaScript
- * Handles UI interactions and data fetching for EC2 instance and volume information
- */
-
-// Initialize the application namespace
-const EC2QuickLook = {
-    // Cache DOM elements
-    elements: {},
-    
-    // Cache for selected instance type
-    selectedType: 'm5.xlarge',
-    
-    // Default instance families
-    defaultFamilies: ['m5', 'm6g'],
-
-    /**
-     * Initialize the application
-     */
-    init() {
-        this.cacheElements();
-        this.bindEvents();
-        this.updateTypes();
+new Vue({
+    el: '#app',
+    delimiters: ['[[', ']]'],  // Set delimiters for this instance
+    mounted() {
+      // Remove v-cloak after Vue is mounted
+      this.$el.removeAttribute('v-cloak');
     },
-
-    /**
-     * Cache frequently used DOM elements
-     */
-    cacheElements() {
-        this.elements = {
-            arch: $('#arch'),
-            region: $('#region'),
-            family: $('#family'),
-            types: $('#types'),
-            btnQuery: $('#btnquery'),
-            forms: document.getElementsByClassName('needs-validation')
-        };
+    data: {
+      form: {
+        region: 'us-east-1',
+        arch: 'x86_64',
+        operation: '',
+        family: '',
+        type: '',
+        voltype: 'gp3',
+        volsize: 60
+      },
+      loading: false,
+      validated: false,
+      instance: null,
+      volume: null,
+      previousPrice: null,
+      comparisonItems: [],
+      regionOptions: [],
+      operationOptions: [],
+      familyOptions: [],
+      typeOptions: [],
+      voltypeOptions: [],
+      detailUrl: null,
+      familyState: null,
+      familyFeedback: ''
     },
-
-    /**
-     * Bind event handlers
-     */
-    bindEvents() {
-        // Form validation
-        this.setupFormValidation();
-        
-        // Input change handlers
-        this.elements.arch.on('change', () => this.updateFamily());
-        this.elements.region.on('change', () => {
-            this.selectedType = this.elements.types.val();
-            this.updateTypes();
-        });
-        this.elements.family.on('change', () => this.updateTypes());
-        
-        // Query button handler
-        this.elements.btnQuery.on('click', () => {
-            this.queryInstance();
-            this.queryVolume();
-        });
+    computed: {
+      isButtonDisabled() {
+        return !this.form.type || this.loading || this.familyState === false;
+      },
+      priceChange() {
+        if (!this.instance || !this.previousPrice) return null;
+        const currentPrice = this.instance.listPrice.pricePerUnit.value;
+        const change = ((currentPrice - this.previousPrice) / this.previousPrice) * 100;
+        return change;
+      },
+      canCompare() {
+        return this.instance && this.comparisonItems.length < 4;
+      },
+      hardwareItems() {
+        return this.instance ? Object.entries(this.instance.hardwareSpecs).map(([key, value]) => ({
+          key,
+          value
+        })) : [];
+      },
+      softwareItems() {
+        return this.instance ? Object.entries(this.instance.softwareSpecs).map(([key, value]) => ({
+          key,
+          value
+        })) : [];
+      },
+      featureItems() {
+        return this.instance ? Object.entries(this.instance.productFeature).map(([key, value]) => ({
+          key,
+          value
+        })) : [];
+      },
+      storageItems() {
+        return this.instance ? Object.entries(this.instance.instanceStorage).map(([key, value]) => ({
+          key,
+          value
+        })) : [];
+      },
+      volumeItems() {
+        return this.volume ? Object.entries(this.volume.productSpecs).map(([key, value]) => ({
+          key,
+          value
+        })) : [];
+      },
+      comparisonFields() {
+        return [
+          { key: 'type', label: 'Instance Type' },
+          { key: 'price', label: 'Price' },
+          { key: 'vcpu', label: 'vCPU' },
+          { key: 'memory', label: 'Memory' },
+          { key: 'network', label: 'Network Performance' }
+        ];
+      }
     },
-
-    /**
-     * Setup Bootstrap form validation
-     */
-    setupFormValidation() {
-        Array.prototype.filter.call(this.elements.forms, (form) => {
-            form.addEventListener('submit', (event) => {
-                if (form.checkValidity() === false) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    },
-
-    /**
-     * Update instance family options based on selected architecture
-     */
-    updateFamily() {
-        const region = this.elements.region.val();
-        const arch = this.elements.arch.val();
-
-        $.ajax({
-            url: "instance/family",
-            data: { region, arch },
-            dataType: "json",
-            beforeSend: () => this.showLoading(this.elements.family),
-            success: (result) => {
-                let familyOptions = ["<option value=''>Choose...</option>"];
-                
-                result.forEach(item => {
-                    const isDefault = this.defaultFamilies.includes(item.name);
-                    familyOptions.push(
-                        `<option ${isDefault ? 'selected' : ''} value="${item.name}">
-                            ${item.description}: ${item.name}
-                        </option>`
-                    );
-                    if (isDefault) this.updateTypes(item.name);
-                });
-
-                this.elements.family.html(familyOptions.join(''));
-            },
-            error: (xhr, status, error) => {
-                console.error('Failed to fetch instance families:', error);
-                this.showError('Failed to load instance families');
-            },
-            complete: () => this.hideLoading(this.elements.family)
-        });
-    },
-
-    /**
-     * Update instance types based on selected family
-     * @param {string} [family] - Optional family parameter
-     */
-    updateTypes(family) {
-        const params = {
-            region: this.elements.region.val(),
-            arch: this.elements.arch.val(),
-            family: family || this.elements.family.val()
-        };
-
-        $.ajax({
-            url: "instance/types",
-            data: params,
-            dataType: "json",
-            beforeSend: () => this.showLoading(this.elements.types),
-            success: (result) => {
-                let typeOptions = ["<option value=''>Choose...</option>"];
-                let unmatch = true;
-
-                result.forEach(item => {
-                    const isSelected = item.instanceType === this.selectedType;
-                    typeOptions.push(
-                        `<option ${isSelected ? 'selected' : ''} value="${item.instanceType}">
-                            ${item.instanceType}
-                        </option>`
-                    );
-                    if (isSelected) unmatch = false;
-                });
-
-                this.elements.types.html(typeOptions.join(''));
-                if (unmatch) this.elements.types.prop("selectedIndex", 1);
-            },
-            error: (xhr, status, error) => {
-                console.error('Failed to fetch instance types:', error);
-                this.showError('Failed to load instance types');
-            },
-            complete: () => this.hideLoading(this.elements.types)
-        });
-    },
-
-    /**
-     * Query instance information
-     */
-    queryInstance() {
-        const params = {
-            region: this.elements.region.val(),
-            type: this.elements.types.val(),
-            op: $('#operation').val()
-        };
-
-        $.ajax({
-            url: "product/instance",
-            data: params,
-            dataType: "json",
-            beforeSend: () => this.showLoading($('#instance')),
-            success: (result) => this.updateInstanceUI(result),
-            error: (xhr, status, error) => {
-                console.error('Failed to fetch instance data:', error);
-                this.showError('Failed to load instance information');
-            },
-            complete: () => this.hideLoading($('#instance'))
-        });
-    },
-
-    /**
-     * Query volume information
-     */
-    queryVolume() {
-        const params = {
-            region: this.elements.region.val(),
-            type: $('#voltypes').val(),
-            size: $('#volsize').val()
-        };
-
-        $.ajax({
-            url: "product/volume",
-            data: params,
-            dataType: "json",
-            beforeSend: () => this.showLoading($('#tbvolspec')),
-            success: (result) => this.updateVolumeUI(result),
-            error: (xhr, status, error) => {
-                console.error('Failed to fetch volume data:', error);
-                this.showError('Failed to load volume information');
-            },
-            complete: () => this.hideLoading($('#tbvolspec'))
-        });
-    },
-
-    /**
-     * Update instance information UI
-     * @param {Object} result - Instance data
-     */
-    updateInstanceUI(result) {
-        if ("listPrice" in result) {
-            $('#insprice').html(`${result.listPrice.pricePerUnit.currency} ${result.listPrice.pricePerUnit.value.toFixed(2)}`);
-            $('#insunit').html(result.listPrice.unit);
-            $('#insdate').html(result.listPrice.effectiveDate);
-            $('#insfamily').html(result.productMeta.instanceFamily);
-            $('#instenan').html(result.productMeta.tenancy);
-            $('#insloca').html(result.productMeta.location);
-            $('#insurl').attr('href', result.productMeta.introduceUrl);
-            $('#tbdetail').show();
-            $('#detailurl').attr('href', `detail?region=${this.elements.region.val()}&type=${this.elements.types.val()}`);
-        } else {
-            this.resetInstanceUI();
+    methods: {
+      async quickLook() {
+        this.loading = true;
+        try {
+          // Store previous price for comparison
+          this.previousPrice = this.instance?.listPrice.pricePerUnit.value;
+  
+          // Query instance data
+          const instanceResponse = await axios.get('product/instance', {
+            params: {
+              region: this.form.region,
+              type: this.form.type,
+              op: this.form.operation
+            }
+          });
+          this.instance = instanceResponse.data;
+  
+          // Query volume data
+          const volumeResponse = await axios.get('product/volume', {
+            params: {
+              region: this.form.region,
+              type: this.form.voltype,
+              size: this.form.volsize
+            }
+          });
+          this.volume = volumeResponse.data;
+  
+          // Update detail URL
+          this.detailUrl = `detail?region=${this.form.region}&type=${this.form.type}`;
+  
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          this.$bvToast.toast('Failed to fetch data. Please try again.', {
+            title: 'Error',
+            variant: 'danger',
+            solid: true
+          });
+        } finally {
+          this.loading = false;
         }
-
-        this.updateTable('#tbhardware', result.hardwareSpecs);
-        this.updateTable('#tbsoftware', result.softwareSpecs);
-        this.updateTable('#tbinstorage', result.instanceStorage);
-        this.updateTable('#tbfeature', result.productFeature);
-    },
-
-    /**
-     * Update volume information UI
-     * @param {Object} result - Volume data
-     */
-    updateVolumeUI(result) {
-        this.updateTable('#tbvolspec', result.productSpecs);
+      },
+      async updateFamily() {
+        // Reset validation state
+        this.familyState = null;
+        this.familyFeedback = '';
         
-        $('#volprice').html(`${result.listPrice.pricePerUnit.currency} ${result.listPrice.pricePerUnit.value.toFixed(2)}`);
-        $('#volunit').html(result.listPrice.unit);
-        $('#voldate').html(result.listPrice.effectiveDate);
-        $('#voltype').html(result.productMeta.volumeType);
-        $('#usagetype').html(result.productMeta.usagetype);
-        $('#volmedia').html(result.productMeta.storageMedia);
-        $('#volurl').attr('href', result.productMeta.introduceUrl);
+        try {
+          const response = await axios.get('instance/family', {
+            params: {
+              region: this.form.region,
+              arch: this.form.arch
+            }
+          });
+          this.familyOptions = response.data.map(item => ({
+            value: item.name,
+            text: `${item.description}: ${item.name}`
+          }));
+          // Set default family if available
+          if (this.familyOptions.length > 0) {
+            const defaultFamily = this.familyOptions.find(f => ['m5', 'm6g'].includes(f.value));
+            if (defaultFamily) {
+              this.form.family = defaultFamily.value;
+              this.updateTypes();
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching families:', error);
+          this.familyState = false;
+          this.familyFeedback = 'Failed to load instance families. Please try again.';
+        }
+      },
+      async updateTypes() {
+        if (!this.form.family) return;
+        
+        try {
+          // Store current size suffix before updating types
+          const currentType = this.form.type;
+          const currentSizeSuffix = currentType ? currentType.match(/[a-z]+\d*\.(.+)/)?.[1] : null;
+  
+          const response = await axios.get('instance/types', {
+            params: {
+              region: this.form.region,
+              arch: this.form.arch,
+              family: this.form.family
+            }
+          });
+  
+          if (response.data && response.data.length > 0) {
+            this.typeOptions = response.data.map(item => ({
+              value: item.instanceType,
+              text: item.instanceType
+            }));
+            // Sort instance types by size
+            this.typeOptions.sort((a, b) => {
+              // Define size order mapping
+              const sizeOrder = {
+                'nano': 1, 'micro': 2, 'small': 3, 'medium': 4, 'large': 5,
+                'xlarge': 6, '2xlarge': 7, '3xlarge': 8, '4xlarge': 9,
+                '6xlarge': 10, '8xlarge': 11, '9xlarge': 12, '10xlarge': 13,
+                '12xlarge': 14, '16xlarge': 15, '18xlarge': 16, '24xlarge': 17,
+                '32xlarge': 18, '48xlarge': 19, 'metal': 20
+              };
+              
+              // Extract size suffix (e.g., 'large', 'xlarge', '2xlarge')
+              const getSizeSuffix = (type) => {
+                const match = type.match(/[a-z]+\d*\.(.+)/);
+                return match ? match[1] : '';
+              };
+              
+              const sizeA = getSizeSuffix(a.value);
+              const sizeB = getSizeSuffix(b.value);
+              
+              return (sizeOrder[sizeA] || 0) - (sizeOrder[sizeB] || 0);
+            });
+  
+            // Set instance type with priority:
+            // 1. Same size as current (e.g., if current is m5.4xlarge, try to find *.4xlarge)
+            // 2. .large instance
+            // 3. First available option
+            let selectedType;
+            if (currentSizeSuffix) {
+              selectedType = this.typeOptions.find(t => t.value.endsWith(`.${currentSizeSuffix}`));
+            }
+            if (!selectedType) {
+              selectedType = this.typeOptions.find(t => t.value.endsWith('.large')) || this.typeOptions[0];
+            }
+            this.form.type = selectedType.value;
+            this.familyState = true;
+            this.familyFeedback = '';
+          } else {
+            // Clear type options and show warning when no instance types are available
+            this.typeOptions = [{
+              value: '',
+              text: 'No instance types available',
+              disabled: true
+            }];
+            this.form.type = '';
+            this.familyState = false;
+            this.familyFeedback = `"${this.form.family}" is not supported in this region.`;
+          }
+        } catch (error) {
+          console.error('Error fetching types:', error);
+          this.typeOptions = [{
+            value: '',
+            text: 'Error loading instance types',
+            disabled: true
+          }];
+          this.form.type = '';
+          this.familyState = false;
+          this.familyFeedback = 'Failed to load instance types. Please try again.';
+        }
+      },
+      addToComparison() {
+        if (!this.instance || this.comparisonItems.length >= 4) return;
+  
+        const item = {
+          type: this.form.type,
+          price: `${this.instance.listPrice.pricePerUnit.currency}${this.instance.listPrice.pricePerUnit.value.toFixed(2)}/${this.instance.listPrice.unit}`,
+          vcpu: this.instance.hardwareSpecs.vCPU,
+          memory: this.instance.hardwareSpecs.Memory,
+          network: this.instance.hardwareSpecs['Network Performance']
+        };
+  
+        this.comparisonItems.push(item);
+        this.$bvModal.show('compare-modal');
+      }
     },
-
-    /**
-     * Reset instance UI to default state
-     */
-    resetInstanceUI() {
-        $('#insprice').html('unknown');
-        $('#insunit').html('Month');
-        $('#insdate').html('');
-        $('#insfamily').html('Not Found');
-        $('#instenan').html('');
-        $('#insloca').html('');
-        $('#insurl').attr('href', '');
-        $('#tbdetail').hide();
+    watch: {
+      'form.arch'() {
+        this.updateFamily();
+      },
+      'form.region'() {
+        this.updateTypes();
+      },
+      'form.family'() {
+        this.updateTypes();
+      }
     },
-
-    /**
-     * Update table content
-     * @param {string} tableId - Table selector
-     * @param {Object} data - Table data
-     */
-    updateTable(tableId, data) {
-        const rows = Object.entries(data).map(([key, value]) => 
-            `<tr><td>${key}</td><td>${value}</td></tr>`
-        );
-        $(tableId).html(rows.join(''));
-    },
-
-    /**
-     * Show loading indicator
-     * @param {jQuery} element - jQuery element
-     */
-    showLoading(element) {
-        element.addClass('loading').prop('disabled', true);
-    },
-
-    /**
-     * Hide loading indicator
-     * @param {jQuery} element - jQuery element
-     */
-    hideLoading(element) {
-        element.removeClass('loading').prop('disabled', false);
-    },
-
-    /**
-     * Show error message
-     * @param {string} message - Error message
-     */
-    showError(message) {
-        console.error(message);
+    async created() {
+      try {
+        // Load initial data
+        const [regionResponse, operationResponse, voltypeResponse] = await Promise.all([
+          axios.get('instance/regions'),
+          axios.get('instance/operations'),
+          axios.get('instance/voltypes')
+        ]);
+  
+        this.regionOptions = regionResponse.data.map(region => ({
+          value: region.code,
+          text: `${region.code} ${region.name}`
+        }));
+  
+        this.operationOptions = operationResponse.data.map(op => ({
+          value: op.operation,
+          text: op.platform
+        }));
+  
+        this.voltypeOptions = voltypeResponse.data.map(vt => ({
+          value: vt,
+          text: vt
+        }));
+  
+        // Set default values
+        this.form.operation = this.operationOptions.find(op => op.text === 'Linux/UNIX')?.value;
+        await this.updateFamily();
+  
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      }
     }
-};
-
-// Initialize application when DOM is ready
-$(function() {
-    EC2QuickLook.init();
-});
+  });
+  

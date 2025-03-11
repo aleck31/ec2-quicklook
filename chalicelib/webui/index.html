@@ -45,11 +45,17 @@
 
     <div class="row">
       <div class="col-md-2 mb-2">
-        <b-form-group label="Instance Family" label-for="family">
+        <b-form-group
+          label="Instance Family"
+          label-for="family"
+          :state="familyState"
+          :invalid-feedback="familyFeedback"
+        >
           <b-form-select
             id="family"
             v-model="form.family"
             :options="familyOptions"
+            :state="familyState"
             required
           ></b-form-select>
         </b-form-group>
@@ -101,12 +107,12 @@
       </div>
       <!-- Query button -->
       <div class="col-md-4 mb-2">
-        <b-button variant="success" class="text-center" @click="quickLook" :disabled="loading">
+        <b-button variant="success" class="text-center" @click="quickLook" :disabled="isButtonDisabled">
           <b-spinner small v-if="loading"></b-spinner>
           QuickLook
         </b-button>
         <!-- Instance comparison button -->
-        <b-button variant="info" class="text-center ml-2" @click="addToComparison" :disabled="!canCompare">
+        <b-button variant="info" class="text-center ml-2" @click="addToComparison" :disabled="isButtonDisabled || !canCompare">
           <i class="fas fa-plus"></i> Compare
         </b-button>
       </div>
@@ -136,10 +142,10 @@
             <span v-if="instance">
               [[ instance.listPrice.pricePerUnit.currency ]][[ instance.listPrice.pricePerUnit.value.toFixed(2) ]]
               <small class="text-muted">/ [[ instance.listPrice.unit ]]</small>
-              <b-badge v-if="priceChange" :variant="priceChange > 0 ? 'danger' : 'success'" class="ml-2">
+              <span v-if="priceChange" :class="['price-change-indicator', priceChange > 0 ? 'up' : 'down']">
                 <i :class="priceChange > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
                 [[ Math.abs(priceChange).toFixed(2) ]]%
-              </b-badge>
+              </span>
             </span>
             <span v-else>
               USD 0.00

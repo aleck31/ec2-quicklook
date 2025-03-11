@@ -100,9 +100,42 @@
   box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
 
+/* Hide number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  appearance: textfield;
+  -webkit-appearance: textfield;
+  -moz-appearance: textfield;
+}
+
 /* Price Change Badge */
-.badge {
+.price-change-indicator {
+  font-size: 0.4em;
+  position: relative;
+  top: -0.7em;
+  margin-left: 0.2em;
+  padding: 0.2em 0.4em;
+  display: inline-block;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem;
   transition: all 0.3s;
+}
+
+.price-change-indicator.up {
+  background-color: #dc3545;
+  color: white;
+}
+
+.price-change-indicator.down {
+  background-color: #28a745;
+  color: white;
 }
 
 /* Collapse Transitions */
