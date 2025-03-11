@@ -4,4 +4,4 @@ from chalice import Blueprint
 bp = Blueprint(__name__)
 
 # Import views after bp is defined to avoid circular imports
-__import__('chalicelib.web.view')
+__import__('chalicelib.webui.view')

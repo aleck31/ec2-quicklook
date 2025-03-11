@@ -21,11 +21,11 @@ logger = app.log
 # Register blueprints
 from chalicelib.swagger import bp as swagger_bp
 from chalicelib.product import bp as product_bp
-from chalicelib.web import bp as web_bp
+from chalicelib.webui import bp as webui_bp
 
 app.register_blueprint(swagger_bp, name_prefix='swagger')
 app.register_blueprint(product_bp, name_prefix='product')
-app.register_blueprint(web_bp, name_prefix='webui')
+app.register_blueprint(webui_bp, name_prefix='webui')
 
 # Log application startup
 logger.info("EC2 Quicklook application initialized")

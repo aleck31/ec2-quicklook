@@ -1,1 +1,229 @@
-const EC2QuickLook={elements:{},selectedType:'m5.xlarge',defaultFamilies:['m5','m6g'],init(){this.cacheElements();this.bindEvents();this.updateTypes()},cacheElements(){this.elements={arch:$('#arch'),region:$('#region'),family:$('#family'),types:$('#types'),btnQuery:$('#btnquery'),forms:document.getElementsByClassName('needs-validation')}},bindEvents(){this.setupFormValidation();this.elements.arch.on('change',()=>this.updateFamily());this.elements.region.on('change',()=>{this.selectedType=this.elements.types.val();this.updateTypes()});this.elements.family.on('change',()=>this.updateTypes());this.elements.btnQuery.on('click',()=>{this.queryInstance();this.queryVolume()})},setupFormValidation(){Array.prototype.filter.call(this.elements.forms,(form)=>{form.addEventListener('submit',(event)=>{if(form.checkValidity()===false){event.preventDefault();event.stopPropagation()}form.classList.add('was-validated')},false)})},updateFamily(){const region=this.elements.region.val();const arch=this.elements.arch.val();$.ajax({url:"instance/family",data:{region,arch},dataType:"json",beforeSend:()=>this.showLoading(this.elements.family),success:(result)=>{let familyOptions=["<option value=''>Choose...</option>"];result.forEach(item=>{const isDefault=this.defaultFamilies.includes(item.name);familyOptions.push(`<option ${isDefault?'selected':''}value="${item.name}">${item.description}:${item.name}</option>`);if(isDefault)this.updateTypes(item.name)});this.elements.family.html(familyOptions.join(''))},error:(xhr,status,error)=>{console.error('Failed to fetch instance families:',error);this.showError('Failed to load instance families')},complete:()=>this.hideLoading(this.elements.family)})},updateTypes(family){const params={region:this.elements.region.val(),arch:this.elements.arch.val(),family:family||this.elements.family.val()};$.ajax({url:"instance/types",data:params,dataType:"json",beforeSend:()=>this.showLoading(this.elements.types),success:(result)=>{let typeOptions=["<option value=''>Choose...</option>"];let unmatch=true;result.forEach(item=>{const isSelected=item.instanceType===this.selectedType;typeOptions.push(`<option ${isSelected?'selected':''}value="${item.instanceType}">${item.instanceType}</option>`);if(isSelected)unmatch=false});this.elements.types.html(typeOptions.join(''));if(unmatch)this.elements.types.prop("selectedIndex",1)},error:(xhr,status,error)=>{console.error('Failed to fetch instance types:',error);this.showError('Failed to load instance types')},complete:()=>this.hideLoading(this.elements.types)})},queryInstance(){const params={region:this.elements.region.val(),type:this.elements.types.val(),op:$('#operation').val()};$.ajax({url:"product/instance",data:params,dataType:"json",beforeSend:()=>this.showLoading($('#instance')),success:(result)=>this.updateInstanceUI(result),error:(xhr,status,error)=>{console.error('Failed to fetch instance data:',error);this.showError('Failed to load instance information')},complete:()=>this.hideLoading($('#instance'))})},queryVolume(){const params={region:this.elements.region.val(),type:$('#voltypes').val(),size:$('#volsize').val()};$.ajax({url:"product/volume",data:params,dataType:"json",beforeSend:()=>this.showLoading($('#tbvolspec')),success:(result)=>this.updateVolumeUI(result),error:(xhr,status,error)=>{console.error('Failed to fetch volume data:',error);this.showError('Failed to load volume information')},complete:()=>this.hideLoading($('#tbvolspec'))})},updateInstanceUI(result){if("listPrice"in result){$('#insprice').html(`${result.listPrice.pricePerUnit.currency}${result.listPrice.pricePerUnit.value.toFixed(2)}`);$('#insunit').html(result.listPrice.unit);$('#insdate').html(result.listPrice.effectiveDate);$('#insfamily').html(result.productMeta.instanceFamily);$('#instenan').html(result.productMeta.tenancy);$('#insloca').html(result.productMeta.location);$('#insurl').attr('href',result.productMeta.introduceUrl);$('#tbdetail').show();$('#detailurl').attr('href',`detail?region=${this.elements.region.val()}&type=${this.elements.types.val()}`)}else{this.resetInstanceUI()}this.updateTable('#tbhardware',result.hardwareSpecs);this.updateTable('#tbsoftware',result.softwareSpecs);this.updateTable('#tbinstorage',result.instanceStorage);this.updateTable('#tbfeature',result.productFeature)},updateVolumeUI(result){this.updateTable('#tbvolspec',result.productSpecs);$('#volprice').html(`${result.listPrice.pricePerUnit.currency}${result.listPrice.pricePerUnit.value.toFixed(2)}`);$('#volunit').html(result.listPrice.unit);$('#voldate').html(result.listPrice.effectiveDate);$('#voltype').html(result.productMeta.volumeType);$('#usagetype').html(result.productMeta.usagetype);$('#volmedia').html(result.productMeta.storageMedia);$('#volurl').attr('href',result.productMeta.introduceUrl)},resetInstanceUI(){$('#insprice').html('unknown');$('#insunit').html('Month');$('#insdate').html('');$('#insfamily').html('Not Found');$('#instenan').html('');$('#insloca').html('');$('#insurl').attr('href','');$('#tbdetail').hide()},updateTable(tableId,data){const rows=Object.entries(data).map(([key,value])=>`<tr><td>${key}</td><td>${value}</td></tr>`);$(tableId).html(rows.join(''))},showLoading(element){element.addClass('loading').prop('disabled',true)},hideLoading(element){element.removeClass('loading').prop('disabled',false)},showError(message){console.error(message)}};$(function(){EC2QuickLook.init()});
+new Vue({
+  el: '#app',
+  delimiters: ['[[', ']]'],  // Set delimiters for this instance
+  mounted() {
+    // Remove v-cloak after Vue is mounted
+    this.$el.removeAttribute('v-cloak');
+  },
+  data: {
+    form: {
+      region: 'us-east-1',
+      arch: 'x86_64',
+      operation: '',
+      family: '',
+      type: '',
+      voltype: 'gp3',
+      volsize: 60
+    },
+    loading: false,
+    validated: false,
+    instance: null,
+    volume: null,
+    previousPrice: null,
+    comparisonItems: [],
+    regionOptions: [],
+    operationOptions: [],
+    familyOptions: [],
+    typeOptions: [],
+    voltypeOptions: [],
+    detailUrl: null
+  },
+  computed: {
+    priceChange() {
+      if (!this.instance || !this.previousPrice) return null;
+      const currentPrice = this.instance.listPrice.pricePerUnit.value;
+      const change = ((currentPrice - this.previousPrice) / this.previousPrice) * 100;
+      return change;
+    },
+    canCompare() {
+      return this.instance && this.comparisonItems.length < 4;
+    },
+    hardwareItems() {
+      return this.instance ? Object.entries(this.instance.hardwareSpecs).map(([key, value]) => ({
+        key,
+        value
+      })) : [];
+    },
+    softwareItems() {
+      return this.instance ? Object.entries(this.instance.softwareSpecs).map(([key, value]) => ({
+        key,
+        value
+      })) : [];
+    },
+    featureItems() {
+      return this.instance ? Object.entries(this.instance.productFeature).map(([key, value]) => ({
+        key,
+        value
+      })) : [];
+    },
+    storageItems() {
+      return this.instance ? Object.entries(this.instance.instanceStorage).map(([key, value]) => ({
+        key,
+        value
+      })) : [];
+    },
+    volumeItems() {
+      return this.volume ? Object.entries(this.volume.productSpecs).map(([key, value]) => ({
+        key,
+        value
+      })) : [];
+    },
+    comparisonFields() {
+      return [
+        { key: 'type', label: 'Instance Type' },
+        { key: 'price', label: 'Price' },
+        { key: 'vcpu', label: 'vCPU' },
+        { key: 'memory', label: 'Memory' },
+        { key: 'network', label: 'Network Performance' }
+      ];
+    }
+  },
+  methods: {
+    async quickLook() {
+      this.loading = true;
+      try {
+        // Store previous price for comparison
+        this.previousPrice = this.instance?.listPrice.pricePerUnit.value;
+
+        // Query instance data
+        const instanceResponse = await axios.get('product/instance', {
+          params: {
+            region: this.form.region,
+            type: this.form.type,
+            op: this.form.operation
+          }
+        });
+        this.instance = instanceResponse.data;
+
+        // Query volume data
+        const volumeResponse = await axios.get('product/volume', {
+          params: {
+            region: this.form.region,
+            type: this.form.voltype,
+            size: this.form.volsize
+          }
+        });
+        this.volume = volumeResponse.data;
+
+        // Update detail URL
+        this.detailUrl = `detail?region=${this.form.region}&type=${this.form.type}`;
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        this.$bvToast.toast('Failed to fetch data. Please try again.', {
+          title: 'Error',
+          variant: 'danger',
+          solid: true
+        });
+      } finally {
+        this.loading = false;
+      }
+    },
+    async updateFamily() {
+      try {
+        const response = await axios.get('instance/family', {
+          params: {
+            region: this.form.region,
+            arch: this.form.arch
+          }
+        });
+        this.familyOptions = response.data.map(item => ({
+          value: item.name,
+          text: `${item.description}: ${item.name}`
+        }));
+        // Set default family if available
+        if (this.familyOptions.length > 0) {
+          const defaultFamily = this.familyOptions.find(f => ['m5', 'm6g'].includes(f.value));
+          if (defaultFamily) {
+            this.form.family = defaultFamily.value;
+            this.updateTypes();
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching families:', error);
+      }
+    },
+    async updateTypes() {
+      if (!this.form.family) return;
+      
+      try {
+        const response = await axios.get('instance/types', {
+          params: {
+            region: this.form.region,
+            arch: this.form.arch,
+            family: this.form.family
+          }
+        });
+        this.typeOptions = response.data.map(item => ({
+          value: item.instanceType,
+          text: item.instanceType
+        }));
+        // Sort instance types by size
+        this.typeOptions.sort((a, b) => {
+          const sizeA = a.value.match(/\d+/)[0];
+          const sizeB = b.value.match(/\d+/)[0];
+          return parseInt(sizeA) - parseInt(sizeB);
+        });
+      } catch (error) {
+        console.error('Error fetching types:', error);
+      }
+    },
+    addToComparison() {
+      if (!this.instance || this.comparisonItems.length >= 4) return;
+
+      const item = {
+        type: this.form.type,
+        price: `${this.instance.listPrice.pricePerUnit.currency}${this.instance.listPrice.pricePerUnit.value.toFixed(2)}/${this.instance.listPrice.unit}`,
+        vcpu: this.instance.hardwareSpecs.vCPU,
+        memory: this.instance.hardwareSpecs.Memory,
+        network: this.instance.hardwareSpecs['Network Performance']
+      };
+
+      this.comparisonItems.push(item);
+      this.$bvModal.show('compare-modal');
+    }
+  },
+  watch: {
+    'form.arch'() {
+      this.updateFamily();
+    },
+    'form.region'() {
+      this.updateTypes();
+    },
+    'form.family'() {
+      this.updateTypes();
+    }
+  },
+  async created() {
+    try {
+      // Load initial data
+      const [regionResponse, operationResponse, voltypeResponse] = await Promise.all([
+        axios.get('instance/regions'),
+        axios.get('instance/operations'),
+        axios.get('instance/voltypes')
+      ]);
+
+      this.regionOptions = regionResponse.data.map(region => ({
+        value: region.code,
+        text: `${region.code} ${region.name}`
+      }));
+
+      this.operationOptions = operationResponse.data.map(op => ({
+        value: op.operation,
+        text: op.platform
+      }));
+
+      this.voltypeOptions = voltypeResponse.data.map(vt => ({
+        value: vt,
+        text: vt
+      }));
+
+      // Set default values
+      this.form.operation = this.operationOptions.find(op => op.text === 'Linux/UNIX')?.value;
+      await this.updateFamily();
+
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    }
+  }
+});

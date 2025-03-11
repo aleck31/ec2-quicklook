@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %} - home{% endblock %}
+{% block head %} {{ super() }} {% endblock %}
+
+{% block content %}
+<div id="app" v-cloak>
+  <b-form @submit.prevent="onSubmit" class="needs-validation" :validated="validated">
+    <!-- Search conditions -->
+    <div class="row">
+      <div class="col-md-2 mb-2">
+        <b-form-group label="Region" label-for="region">
+          <b-form-select
+            id="region"
+            v-model="form.region"
+            :options="regionOptions"
+            required
+          ></b-form-select>
+        </b-form-group>
+      </div>
+      <div class="col-md-2 mb-2">
+        <b-form-group label="Architecture" label-for="arch">
+          <b-form-select
+            id="arch"
+            v-model="form.arch"
+            :options="[
+              { value: 'x86_64', text: 'x86_64' },
+              { value: 'arm64', text: 'arm64' }
+            ]"
+            required
+          ></b-form-select>
+        </b-form-group>
+      </div>
+      <div class="col-md-4 mb-2">
+        <b-form-group label="Operating System" label-for="operation">
+          <b-form-select
+            id="operation"
+            v-model="form.operation"
+            :options="operationOptions"
+            required
+          ></b-form-select>
+        </b-form-group>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-2 mb-2">
+        <b-form-group label="Instance Family" label-for="family">
+          <b-form-select
+            id="family"
+            v-model="form.family"
+            :options="familyOptions"
+            required
+          ></b-form-select>
+        </b-form-group>
+      </div>
+      <div class="col-md-2 mb-2">
+        <b-form-group label="Instance Type" label-for="types">
+          <b-form-select
+            id="types"
+            v-model="form.type"
+            :options="typeOptions"
+            required
+          >
+            <template #first>
+              <b-form-select-option value="" disabled>Choose...</b-form-select-option>
+            </template>
+          </b-form-select>
+        </b-form-group>
+      </div>
+      <div class="col-md-2 mb-2">
+        <b-form-group label="Volume Type" label-for="voltypes">
+          <b-form-select
+            id="voltypes"
+            v-model="form.voltype"
+            :options="voltypeOptions"
+            required
+          ></b-form-select>
+        </b-form-group>
+      </div>
+      <div class="col-md-2 mb-2">
+        <b-form-group label="Disk Size (GiB)" label-for="volsize">
+          <b-input-group>
+            <b-form-input
+              id="volsize"
+              v-model="form.volsize"
+              type="number"
+              min="1"
+              required
+            ></b-form-input>
+            <b-input-group-append>
+              <b-button variant="outline-secondary" @click="form.volsize--">
+                <i class="fas fa-minus"></i>
+              </b-button>
+              <b-button variant="outline-secondary" @click="form.volsize++">
+                <i class="fas fa-plus"></i>
+              </b-button>
+            </b-input-group-append>
+          </b-input-group>
+        </b-form-group>
+      </div>
+      <!-- Query button -->
+      <div class="col-md-4 mb-2">
+        <b-button variant="success" class="text-center" @click="quickLook" :disabled="loading">
+          <b-spinner small v-if="loading"></b-spinner>
+          QuickLook
+        </b-button>
+        <!-- Instance comparison button -->
+        <b-button variant="info" class="text-center ml-2" @click="addToComparison" :disabled="!canCompare">
+          <i class="fas fa-plus"></i> Compare
+        </b-button>
+      </div>
+    </div>
+  </b-form>
+  <hr class="mb-4">
+
+  <!-- Instance comparison modal -->
+  <b-modal id="compare-modal" title="Instance Comparison" size="xl" hide-footer>
+    <b-table 
+      :items="comparisonItems" 
+      :fields="comparisonFields"
+      striped 
+      responsive
+    ></b-table>
+  </b-modal>
+
+  <!-- Price detail -->
+  <div class="row">
+    <div class="col-lg-3 col-md-4 mb-2" v-if="instance">
+      <b-card no-body class="mb-4">
+        <b-card-header>
+          <h4 class="my-0 font-weight-normal">Instance</h4>
+        </b-card-header>
+        <b-card-body>
+          <h2 class="card-title pricing-card-title">
+            <span v-if="instance">
+              [[ instance.listPrice.pricePerUnit.currency ]][[ instance.listPrice.pricePerUnit.value.toFixed(2) ]]
+              <small class="text-muted">/ [[ instance.listPrice.unit ]]</small>
+              <b-badge v-if="priceChange" :variant="priceChange > 0 ? 'danger' : 'success'" class="ml-2">
+                <i :class="priceChange > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+                [[ Math.abs(priceChange).toFixed(2) ]]%
+              </b-badge>
+            </span>
+            <span v-else>
+              USD 0.00
+              <small class="text-muted">/ Hour</small>
+            </span>
+          </h2>
+          <ul class="list-unstyled mt-3 mb-1">
+            <small>effective since: <span v-if="instance">[[ instance.listPrice.effectiveDate ]]</span><span v-else>-</span></small>
+            <hr class="my-2">
+            <li v-if="instance">[[ instance.productMeta.instanceFamily ]]</li>
+            <li v-else>Not selected</li>
+            <li>tenancy: <span v-if="instance">[[ instance.productMeta.tenancy ]]</span><span v-else>Shared</span></li>
+            <li>location: <span v-if="instance">[[ instance.productMeta.location ]]</span><span v-else>[[ form.region ]]</span></li>
+            <li><a :href="instance ? instance.productMeta.introduceUrl : '#'" target="_blank">Learn more »</a></li>
+          </ul>
+        </b-card-body>
+      </b-card>
+    </div>
+    <div class="col-lg-3 col-md-4 mb-2" v-if="volume">
+      <b-card no-body class="mb-4">
+        <b-card-header>
+          <h4 class="my-0 font-weight-normal">Volume</h4>
+        </b-card-header>
+        <b-card-body>
+          <h2 class="card-title pricing-card-title">
+            <span v-if="volume">
+              [[ volume.listPrice.pricePerUnit.currency ]][[ volume.listPrice.pricePerUnit.value.toFixed(2) ]]
+              <small class="text-muted">/ [[ volume.listPrice.unit ]]</small>
+            </span>
+            <span v-else>
+              USD 0.00
+              <small class="text-muted">/ GB-Month</small>
+            </span>
+          </h2>
+          <ul class="list-unstyled mt-3 mb-1">
+            <small>effective since: <span v-if="volume">[[ volume.listPrice.effectiveDate ]]</span><span v-else>-</span></small>
+            <hr class="my-2">
+            <li v-if="volume">[[ volume.productMeta.volumeType ]]</li>
+            <li v-else>Not selected</li>
+            <li>usage type: <span v-if="volume">[[ volume.productMeta.usagetype ]]</span><span v-else>-</span></li>
+            <li>storage media: <span v-if="volume">[[ volume.productMeta.storageMedia ]]</span><span v-else>-</span></li>
+            <li><a :href="volume ? volume.productMeta.introduceUrl : '#'" target="_blank">Learn more »</a></li>
+          </ul>
+        </b-card-body>
+      </b-card>
+    </div>
+  </div>
+
+  <!-- Instance detail -->
+  <div class="row" v-if="instance">
+    <div class="col-md-4 mb-2">
+      <b-card no-body>
+        <b-card-header class="bg-dark text-white">
+          <h5 class="mb-0">
+            <b-button v-b-toggle.hardware-collapse block variant="link" class="text-white">
+              Hardware
+              <i class="fas fa-chevron-down float-right"></i>
+            </b-button>
+          </h5>
+        </b-card-header>
+        <b-collapse id="hardware-collapse" visible>
+          <b-table
+            :items="hardwareItems"
+            :fields="['key', 'value']"
+            striped
+            small
+          ></b-table>
+        </b-collapse>
+      </b-card>
+    </div>
+
+    <div class="col-md-4 mb-2">
+      <b-card no-body>
+        <b-card-header class="bg-dark text-white">
+          <h5 class="mb-0">
+            <b-button v-b-toggle.software-collapse block variant="link" class="text-white">
+              Software
+              <i class="fas fa-chevron-down float-right"></i>
+            </b-button>
+          </h5>
+        </b-card-header>
+        <b-collapse id="software-collapse" visible>
+          <b-table
+            :items="softwareItems"
+            :fields="['key', 'value']"
+            striped
+            small
+          ></b-table>
+        </b-collapse>
+      </b-card>
+    </div>
+    
+    <div class="col-md-4 mb-2">
+      <b-card no-body>
+        <b-card-header class="bg-dark text-white">
+          <h5 class="mb-0">
+            <b-button v-b-toggle.features-collapse block variant="link" class="text-white">
+              Features
+              <i class="fas fa-chevron-down float-right"></i>
+            </b-button>
+          </h5>
+        </b-card-header>
+        <b-collapse id="features-collapse" visible>
+          <b-table
+            :items="featureItems"
+            :fields="['key', 'value']"
+            striped
+            small
+          ></b-table>
+        </b-collapse>
+      </b-card>
+    </div>
+  </div>
+  <!-- Volume detail -->
+  <div class="row" v-if="instance && volume">
+    <div class="col-md-4 mb-2">
+      <b-card no-body>
+        <b-card-header class="bg-dark text-white">
+          <h5 class="mb-0">
+            <b-button v-b-toggle.storage-collapse block variant="link" class="text-white">
+              Instance Storage
+              <i class="fas fa-chevron-down float-right"></i>
+            </b-button>
+          </h5>
+        </b-card-header>
+        <b-collapse id="storage-collapse" visible>
+          <b-table
+            :items="storageItems"
+            :fields="['key', 'value']"
+            striped
+            small
+          ></b-table>
+        </b-collapse>
+      </b-card>
+    </div>
+
+    <div class="col-md-4 mb-2">
+      <b-card no-body>
+        <b-card-header class="bg-dark text-white">
+          <h5 class="mb-0">
+            <b-button v-b-toggle.volume-collapse block variant="link" class="text-white">
+              EBS Volume
+              <i class="fas fa-chevron-down float-right"></i>
+            </b-button>
+          </h5>
+        </b-card-header>
+        <b-collapse id="volume-collapse" visible>
+          <b-table
+            :items="volumeItems"
+            :fields="['key', 'value']"
+            striped
+            small
+          ></b-table>
+        </b-collapse>
+      </b-card>
+    </div>
+
+    <div class="col-md-4 mb-2">
+      <b-button
+        v-if="detailUrl"
+        block
+        variant="secondary"
+        :href="detailUrl"
+        target="_blank"
+      >
+        Get more details...
+      </b-button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+  {{ super() }}
+  <script src="js/custom"></script>
+{% endblock %}

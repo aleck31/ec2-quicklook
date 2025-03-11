@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from chalicelib.sdk import PricingClient, EC2Client
 from chalicelib.models import AWSServiceError, EC2ServiceError, PricingServiceError
 from chalice.app import Response, BadRequestError
+from chalicelib.webui.view import list_ec2_regions
 from app import logger
 from . import bp
 
@@ -177,11 +178,36 @@ def get_product_volume():
 def get_param_list(res: str):
     """Get EC2 instance parameters"""
     query = bp.current_request.query_params or {}
-    if not query:
-        logger.warning(f"Missing query parameters for instance {res} request")
-        raise BadRequestError('incorrect query parameter')  
-      
+    
     try:
+        # These endpoints don't require query parameters
+        if res in ['regions', 'operations', 'voltypes']:
+            if res == 'regions':
+                resp = list_ec2_regions()
+            elif res == 'operations':
+                eclient = get_ec2_client('us-east-1')  # Default region for operations
+                resp = eclient.list_usage_operations()
+            elif res == 'voltypes':
+                pclient = get_pricing_client()
+                resp = pclient.get_attribute_values(
+                    service_code='AmazonEC2',
+                    attribute_name='volumeApiName'
+                ).get('data', [])
+                # Remove unsupported volume types
+                if 'sc1' in resp:
+                    resp.remove('sc1')
+                if 'st1' in resp:
+                    resp.remove('st1')
+            return Response(
+                body=resp,
+                headers=get_cache_headers(86400)  # Cache for 24 hours
+            )
+
+        # For other endpoints that require query parameters
+        if not query:
+            logger.warning(f"Missing query parameters for instance {res} request")
+            raise BadRequestError('incorrect query parameter')
+
         logger.debug(f"Getting instance {res} for region: {query.get('region')}")
         eclient = get_ec2_client(query.get('region'))
         
@@ -201,9 +227,6 @@ def get_param_list(res: str):
             resp = eclient.get_instance_detail(
                 instance_type=query['type']
             )
-        # /instance/operation?region=xx
-        elif res == 'operation':
-            resp = eclient.list_usage_operations()
         else:
             logger.error(f"Invalid resource type requested: {res}")
             raise EC2ServiceError(

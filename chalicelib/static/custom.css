@@ -1,139 +1,198 @@
+/* Hide Vue template syntax during page load */
+[v-cloak] {
+  display: none;
+}
+
+/* Navigation Bar */
 #navigation-bar {
   height: 60px;
   background: #313131;
   font-size: 22px;
   font-family: 'Gill Sans', sans-serif;
-  color: white; 
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 #navigation-bar .row {
   height: 100%;
+  align-items: center;
 }
 
 #navigation-bar img {
-  height: 100%;
+  height: 42px;
   cursor: pointer;
+  transition: transform 0.2s;
+}
+
+#navigation-bar img:hover {
+  transform: scale(1.05);
 }
 
 #navigation-bar #logo {
   padding: 10px 0;
   margin-bottom: 0;
-  display: inline-block;
-  left: 15px;
 }
 
 #navigation-bar #logo-title {
   padding: 10px 0;
-  margin-top: 5px;
-  display: inline-block;
-  /* font-family: 'Gaegu', sans-serif; */
+  margin: 0;
 }
 
 #navigation-bar #nav-links {
   padding: 10px 0;
-  margin-top: 20px;
-  display: inline-block;
-}
-  
-#navigation-bar #nav-links p{
-  font-size: 0.6em;
-  font-style: italic;
-  color: white;  
-  float: right;
-  transform: translate(-50%, -50%);
-  /* right: 15px;
-  position: absolute; */
+  text-align: right;
 }
 
+#navigation-bar #nav-links p {
+  font-size: 0.6em;
+  font-style: italic;
+  color: white;
+  margin: 0;
+}
+
+/* Sidebar */
 #container-main #sidebar {
   background: #5d5d5d;
-  /* height: 100vh; */
-  padding: 15px 10px 0px 10px;
+  padding: 15px 10px;
   color: white;
-  text-decoration: none;
+  position: sticky;
+  top: 60px;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
 }
 
 #sidebar a {
-  padding: 0px;
-  margin: 0px;
   color: rgb(255, 244, 86);
+  text-decoration: none;
+  transition: color 0.2s;
 }
 
+#sidebar a:hover {
+  color: rgb(255, 255, 150);
+}
+
+/* Main Content */
 #container-main #contents {
-  min-height: 95vh;
+  min-height: calc(100vh - 60px);
   padding: 15px;
-  position: relative;
 }
 
-#container-main #contents #search {
-  height: 7vh;
-  padding: 10px 15px;
-  position: relative;
-}
-#container-main #contents #product {
-  height: 10vh;
-  padding: 15px;
-  position: relative;
+/* Cards and Tables */
+.card {
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-#container-main #contents .date {
-  line-height: 2;
-  margin-bottom: 30px;
-  border-bottom: 1px solid black;
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-/* form-validation */
-.container {
-  max-width: 960px;
+.table-responsive {
+  margin-bottom: 1rem;
 }
 
-.lh-condensed { line-height: 1.25; }
-
-
-/* Syntax highlighting for JSON objects */
-ul.json-dict, ol.json-array {
-  list-style-type: none;
-  margin: 0 0 0 1px;
-  border-left: 1px dotted slategray;
-  padding-left: 2em;
-}
-.json-string {
-  color: #313131;
-}
-.json-literal {
-  color: #f48d0c;
-  font-weight: bold;
+/* Form Elements */
+.form-control:focus,
+.custom-select:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
 
-/* Toggle button */
-a.json-toggle {
-  position: relative;
-  color: inherit;
-  text-decoration: none;
+/* Price Change Badge */
+.badge {
+  transition: all 0.3s;
 }
-a.json-toggle:focus {
-  outline: none;
+
+/* Collapse Transitions */
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all 0.3s;
 }
-a.json-toggle:before {
-  color: #aaa;
-  content: "\25BC"; /* down arrow */
+
+.collapse-enter,
+.collapse-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  #navigation-bar {
+    height: auto;
+    padding: 10px 0;
+  }
+
+  #navigation-bar #logo-title {
+    text-align: center;
+    font-size: 18px;
+  }
+
+  #navigation-bar #nav-links {
+    text-align: center;
+  }
+
+  #container-main #sidebar {
+    position: static;
+    height: auto;
+    margin-bottom: 15px;
+  }
+
+  .card {
+    margin-bottom: 15px;
+  }
+
+  .table-responsive {
+    font-size: 14px;
+  }
+
+  .btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .btn + .btn {
+    margin-left: 0 !important;
+  }
+}
+
+/* Loading States */
+.loading-overlay {
   position: absolute;
-  display: inline-block;
-  width: 1em;
-  left: -1em;
-}
-a.json-toggle.collapsed:before {
-  transform: rotate(-90deg); /* Use rotated down arrow, prevents right arrow appearing smaller than down arrow in some browsers */
-  -ms-transform: rotate(-90deg);
-  -webkit-transform: rotate(-90deg);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
 
-/* Collapsable placeholder links */
-a.json-placeholder {
-  color: #aaa;
-  padding: 0 1em;
-  text-decoration: none;
+/* Comparison Modal */
+.modal-xl {
+  max-width: 95%;
 }
-a.json-placeholder:hover {
-  text-decoration: underline;
+
+/* JSON Viewer Styles */
+.json-viewer {
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.json-viewer .collapsible {
+  cursor: pointer;
+}
+
+.json-viewer .collapsed::before {
+  content: '▶';
+  margin-right: 5px;
+}
+
+.json-viewer .expanded::before {
+  content: '▼';
+  margin-right: 5px;
 }

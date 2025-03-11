@@ -6,14 +6,14 @@ A web tool that helps you quickly query EC2 instance information, including conf
 
 - 🔍 Query EC2 instance details and OD pricing
 - 💾 EBS volume OD pricing
-- 🌐 Support for all AWS regions
+- 🌐 Support for both AWS Global and China regions
 - 📊 Detailed instance specifications
 - 🚀 Serverless deployment with AWS Chalice
 - 📝 Swagger UI API documentation
 
 ## What is this project?
 
-This is an demonstration project for [AWS Chalice](https://aws.github.io/chalice/), a micoservice framework for writing serverless appications in python. The project features a responsive web frontend, RESTful backend APIs, and integrated Swagger UI for API documentation.
+This is a demonstration project for [AWS Chalice](https://aws.github.io/chalice/), a microservice framework for writing serverless applications in Python. The project features a modern Vue.js frontend with Bootstrap-Vue components, RESTful backend APIs, and integrated Swagger UI for API documentation.
 
 You can deploy it to the AWS cloud with a single command. No servers, containers, or storage resources are required for deployment.
 
@@ -21,15 +21,30 @@ You can deploy it to the AWS cloud with a single command. No servers, containers
 
 - **Infrastructure**: AWS Lambda + API Gateway (managed by Chalice)
 - **Storage**: Amazon DynamoDB
-- **Frontend**: HTML/CSS/JavaScript with Bootstrap
+- **Frontend**: Vue.js with Bootstrap-Vue components
 - **Backend**: Python with AWS Chalice framework
 - **API Documentation**: Swagger UI
+
+## File Structure
+
+ec2-quicklook/
+├── app.py                 # Main application entry point
+├── chalicelib/
+│   ├── config.py         # Configuration management
+│   ├── sdk.py            # AWS SDK integration
+│   ├── utils.py          # Utility functions
+│   ├── models.py         # Data models
+│   ├── product/          # Product-related functionality
+│   ├── swagger/          # Swagger UI integration
+│   ├── webui/             # Web interface
+│   └── static/          # Static assets
+└── tests/               # Test files
 
 ## Prerequisites
 
 - [Python](https://www.python.org/downloads/release/python-3100/) >= 3.10
 - [AWS Chalice](https://aws.github.io/chalice/)
-- [AWS Credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) （with appropriate permissions)
+- [AWS Credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) (with appropriate permissions)
 
 ## Installation
 
@@ -138,5 +153,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [AWS Chalice Tutorial](https://aws.github.io/chalice/tutorials/index.html) - Python Serverless Framework
 - [AWS Pricing API](https://aws.amazon.com/aws-cost-management/aws-price-list-api/) - EC2 Pricing Information
-- [Bootstrap](https://getbootstrap.com/) - Frontend Framework
+- [Bootstrap-Vue](https://bootstrap-vue.org/) - Vue.js Implementation of Bootstrap
 - [Swagger UI](https://swagger.io/tools/swagger-ui/) - API Documentation

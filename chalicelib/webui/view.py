@@ -93,17 +93,41 @@ def index():
 
         # gen blank data
         instance = {
-            "productMeta": {},
+            "productMeta": {
+                "instanceFamily": "Not selected",
+                "tenancy": "Shared",
+                "location": region,
+                "introduceUrl": "#"
+            },
             "hardwareSpecs": {},
             "softwareSpecs": {},
             "productFeature": {},
             "instanceStorage": {},
-            "listPrice": { "pricePerUnit": {'currency':"USD",}, }
+            "listPrice": {
+                "pricePerUnit": {
+                    "currency": "USD",
+                    "value": 0.00
+                },
+                "unit": "Hour",
+                "effectiveDate": "-"
+            }
         }
         volume = {
-            "productMeta": {},
+            "productMeta": {
+                "volumeType": "Not selected",
+                "usagetype": "-",
+                "storageMedia": "-",
+                "introduceUrl": "#"
+            },
             "productSpecs": {},
-            "listPrice": { "pricePerUnit": {'currency':"USD",}, }
+            "listPrice": {
+                "pricePerUnit": {
+                    "currency": "USD",
+                    "value": 0.00
+                },
+                "unit": "GB-Month",
+                "effectiveDate": "-"
+            }
         }
 
         # send to front-end
@@ -120,7 +144,7 @@ def index():
         }
 
         return Response(
-            body = render('chalicelib/web/index.html', context),
+            body = render('chalicelib/webui/index.html', context),
             status_code = 200, 
             headers={"Content-Type": "text/html"}
         )
@@ -161,7 +185,7 @@ def detail():  # Fixed duplicate function name
         }
 
         return Response(
-            body = render('chalicelib/web/detail.html', context),
+            body = render('chalicelib/webui/detail.html', context),
             status_code = 200, 
             headers={"Content-Type": "text/html"}
         )
