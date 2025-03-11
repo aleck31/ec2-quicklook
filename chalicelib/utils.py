@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, Any, Union, List, Literal, TypedDict
 from urllib.parse import urlencode
 from chalice.app import Request
 
@@ -9,7 +9,8 @@ from chalice.app import Request
 # Set up logger
 logger = logging.getLogger('ec2-quicklook')
 
-def load_json_file(filename: str):
+
+def load_json_file(filename: str) -> Dict[str, Any]:
     """Load example config list from json file"""    
     # usage operation config: ec2_operation.json
     # instance family config: ec2_instance.json
@@ -26,7 +27,7 @@ def load_json_file(filename: str):
         raise ValueError(f"Invalid JSON in config file: {filename}")
 
 
-def get_table_name(stage='dev'):
+def get_table_name(stage: str = 'dev') -> str:
     '''load table name from config'''
     try:
         tableName = load_local_env_var('APP_TABLE_NAME', stage)
@@ -38,7 +39,7 @@ def get_table_name(stage='dev'):
 
 CONFIG_PATH = os.path.join('.chalice', 'config.json')
     
-def load_local_env_var(env_var, stage='dev'):
+def load_local_env_var(env_var: str, stage: str = 'dev') -> Optional[str]:
     '''load environment variable from .chalice config'''
     try:
         # Use chalice modules to load the config directly.
@@ -52,7 +53,7 @@ def load_local_env_var(env_var, stage='dev'):
         raise
 
 
-def write_local_env_var(key, value, stage):
+def write_local_env_var(key: str, value: str, stage: str) -> None:
     '''write environment variable to .chalice config'''
     try:
         with open(CONFIG_PATH) as f:
@@ -69,7 +70,7 @@ def write_local_env_var(key, value, stage):
         raise
 
 
-def remove_local_env_var(env_var, stage):
+def remove_local_env_var(env_var: str, stage: str) -> None:
     '''remove environment variable from .chalice config'''
     try:
         with open(CONFIG_PATH) as f:
@@ -90,7 +91,7 @@ def remove_local_env_var(env_var, stage):
         raise
 
 
-def exist_in_config(env_var, stage):
+def exist_in_config(env_var: str, stage: str) -> bool:
     '''check if environment variable exists in .chalice config'''
     try:
         with open(CONFIG_PATH) as f:
@@ -105,7 +106,7 @@ def exist_in_config(env_var, stage):
 def build_api_endpoint(
     current_request: Request, 
     request_path: str, 
-    query_params: Optional[Dict] = None
+    query_params: Optional[Dict[str, Union[str, int]]] = None
 ) -> str:
     logger.debug(f"Building API endpoint for path: {request_path}")
     request_dict = current_request.to_dict()

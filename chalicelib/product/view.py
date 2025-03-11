@@ -3,8 +3,12 @@ import ast
 import os
 from functools import lru_cache
 from datetime import datetime, timedelta
+from typing import Dict, Any, Union, Optional
 from chalicelib.sdk import PricingClient, EC2Client
-from chalicelib.models import AWSServiceError, EC2ServiceError, PricingServiceError
+from chalicelib.models import (
+    AWSServiceError, EC2ServiceError, PricingServiceError,
+    InstanceProductParams, VolumeProductParams
+)
 from chalice.app import Response, BadRequestError
 from chalicelib.webui.view import list_ec2_regions
 from app import logger
@@ -13,7 +17,7 @@ from . import bp
 _PRICING_CLIENT = None
 _EC2_CLIENT = None
 
-def get_cache_headers(max_age: int = 3600) -> dict:
+def get_cache_headers(max_age: int = 3600) -> Dict[str, str]:
     """Generate cache control headers with specified max age"""
     expires = datetime.now() + timedelta(seconds=max_age)
     return {
@@ -37,7 +41,7 @@ def get_pricing_client(region: str = 'ap-south-1') -> PricingClient:
     return _PRICING_CLIENT
 
 
-def get_cn_credentials():
+def get_cn_credentials() -> Dict[str, str]:
     """Get AWS China region credentials from Secrets Manager"""
     try:
         secret_id = os.environ.get('SECRET_NAME')
@@ -89,7 +93,7 @@ def get_ec2_client(region: str = 'ap-southeast-1') -> EC2Client:
 
 
 @bp.route('/product/instance', methods=['GET'], cors=True, authorizer=None)
-def get_product_instance():
+def get_product_instance() -> Response:
     """Get EC2 instance product information"""
     query = bp.current_request.query_params    
     if not query:
@@ -100,7 +104,7 @@ def get_product_instance():
         logger.debug(f"Getting product instance info for region: {query.get('region')}, type: {query.get('type')}")
         pclient = get_pricing_client()
         # Only include required parameters
-        params = {
+        params: InstanceProductParams = {
             'region': query['region'],
             'type': query['type'],
             'op': query['op']
@@ -133,7 +137,7 @@ def get_product_instance():
 
 
 @bp.route('/product/volume', methods=['GET'], cors=True, authorizer=None)
-def get_product_volume():
+def get_product_volume() -> Response:
     """Get EBS volume product information"""
     query = bp.current_request.query_params
     if not query:
@@ -144,7 +148,7 @@ def get_product_volume():
         logger.debug(f"Getting product volume info for region: {query.get('region')}, type: {query.get('type')}")
         pclient = get_pricing_client()
         # Only include required parameters
-        params = {
+        params: VolumeProductParams = {
             'region': query['region'],
             'type': query['type'],
             'size': query['size']
@@ -175,7 +179,7 @@ def get_product_volume():
 
 
 @bp.route('/instance/{res}', methods=['GET'], cors=True, authorizer=None)
-def get_param_list(res: str):
+def get_param_list(res: str) -> Response:
     """Get EC2 instance parameters"""
     query = bp.current_request.query_params or {}
     

@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TypedDict, NotRequired, Literal
 
 # Exception Classes
 class AWSServiceError(Exception):
@@ -18,9 +18,21 @@ class PricingServiceError(AWSServiceError):
     def __init__(self, message: str, error_code: str = None):
         super().__init__(message, "Pricing", error_code)
 
-# Simple type aliases for request parameters
-InstanceProductParams = Dict[str, str]
-VolumeProductParams = Dict[str, str]
+# Type definitions for request parameters
+class InstanceProductParams(TypedDict):
+    """Parameters for EC2 instance product queries"""
+    region: str  # AWS region code
+    type: str   # Instance type (e.g., 't3.micro')
+    op: str     # Operation type
+    option: NotRequired[Literal['OnDemand']]  # Market option, defaults to 'OnDemand'
+    tenancy: NotRequired[Literal['Shared', 'Dedicated', 'Host']]  # Instance tenancy, defaults to 'Shared'
+
+class VolumeProductParams(TypedDict):
+    """Parameters for EBS volume product queries"""
+    region: str  # AWS region code
+    type: str   # Volume type (e.g., 'gp3')
+    size: str   # Volume size in GB
+    option: NotRequired[Literal['OnDemand']]  # Market option, defaults to 'OnDemand'
 
 # Type hints for responses
 ProductResponse = Dict[str, Any]

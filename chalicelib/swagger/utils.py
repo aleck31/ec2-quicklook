@@ -1,5 +1,6 @@
 import boto3
 import json
+from typing import Dict, Any, TypedDict
 from chalice import Chalice
 from chalicelib.utils import build_api_endpoint, remove_base_path_slash
 from .webui import docs
@@ -13,7 +14,10 @@ def get_swagger_ui(app: Chalice) -> str:
         app (Chalice): Pointer to main app.py
 
     Returns:
-        str: Swagger UI HTML
+        str: Swagger UI HTML content
+
+    Raises:
+        Exception: If there's an error generating the Swagger UI
     """
     try:
         # Call internal API to retrieve static resource
@@ -55,7 +59,11 @@ def export_api_to_json(app: Chalice, exportType: str = "oas30") -> str:
                     swagger for Swagger/OpenAPI 2.0). Defaults to "oas30".
 
     Returns:
-        str: JSON API document
+        str: Formatted JSON string containing the API specification
+
+    Raises:
+        ValueError: If required query parameters are missing
+        Exception: For other API Gateway or processing errors
     """
     try:
         # Get query parameters from request with defaults

@@ -1,16 +1,16 @@
 from chalice.app import Response
 from chalicelib.file import get_static_file
 from .utils import export_api_to_json, get_swagger_ui
-from . import bp
 from app import logger
+from . import bp
 
 
 @bp.route("/api/docs", methods=["GET"])
-def get_doc():
+def get_doc() -> Response:
     """Get Swagger UI Main Page
-
+    
     Returns:
-        str: text/html for Swagger UI page
+        Response: HTML response containing the Swagger UI page with Content-Type text/html
     """
     logger.debug("Generating Swagger UI page")
     html = get_swagger_ui(bp.current_app)
@@ -22,17 +22,23 @@ def get_doc():
 
 
 @bp.route("/api/json", methods=["GET"])
-def get_api_jsonb():
+def get_api_jsonb() -> Response:
+    """Get OpenAPI specification in JSON format
+    
+    Returns:
+        Response: JSON response containing the OpenAPI specification
+    """
     logger.debug("Exporting API to JSON")
     return export_api_to_json(bp.current_app)
 
 
 @bp.route("/swagger/css", methods=["GET"])
-def get_swagger_css():
+def get_swagger_css() -> Response:
     """Get Swagger UI CSS Endpoint
-
+    
     Returns:
-        str: CSS Content from Static folder
+        Response: CSS response from static folder with Content-Type text/css,
+                 or 404 error response if file not found
     """
     css_file = "swagger-ui.css"
     try:
@@ -52,11 +58,12 @@ def get_swagger_css():
 
 
 @bp.route("/swagger/bundle", methods=["GET"])
-def get_swagger_ui_bundle():
+def get_swagger_ui_bundle() -> Response:
     """Get Swagger UI Bundle JS Endpoint
-
+    
     Returns:
-        str: Return JavaScript for Swagger UI from static folder
+        Response: JavaScript bundle from static folder with Content-Type application/javascript,
+                 or 404 error response if file not found
     """
     ui_js_file = "swagger-ui-bundle.js"
     try:
