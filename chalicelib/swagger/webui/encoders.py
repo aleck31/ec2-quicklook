@@ -1,16 +1,19 @@
 from enum import Enum
 from pathlib import PurePath
 from types import GeneratorType
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, Optional, Set, Union
 from datetime import datetime, date
 from uuid import UUID
 from decimal import Decimal
-# Pydantic v2.0
-from pydantic import BaseModel
 
 
 SetIntStr = Set[Union[int, str]]
 DictIntStrAny = Dict[Union[int, str], Any]
+
+class JsonSerializable:
+    """Base class for JSON serializable objects"""
+    def to_dict(self) -> dict:
+        return vars(self)
 
 # Converting Python Objects to JSON-Compatible Formats
 def jsonable_encoder(
@@ -30,17 +33,8 @@ def jsonable_encoder(
         exclude = set(exclude)
 
     def encode_object(obj: Any) -> Any:
-        if isinstance(obj, BaseModel):
-            return encode_object(
-                obj.model_dump(
-                    include=include,
-                    exclude=exclude,
-                    by_alias=by_alias,
-                    exclude_unset=exclude_unset,
-                    exclude_none=exclude_none,
-                    exclude_defaults=exclude_defaults,
-                )
-            )
+        if isinstance(obj, JsonSerializable):
+            return encode_object(obj.to_dict())
         elif isinstance(obj, Enum):
             return obj.value
         elif isinstance(obj, PurePath):

@@ -1,6 +1,6 @@
 {
     "name": "operation",
-    "version": "2021.06",
+    "version": "2024.05",
     "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/billing-info-fields.html",
     "description": "AMI's platform value indicates the operation of an Amazon EC2 instance",
     "config": [
@@ -25,16 +25,28 @@
             "operation": "RunInstances:0010"
         },
         {
-            "platform": "Red Hat Enterprise Linux with SQL Server Standard",
-            "operation": "RunInstances:1014"
-        },
-        {
-            "platform": "Red Hat Enterprise Linux with SQL Server Enterprise",
-            "operation": "RunInstances:1110"
+            "platform": "Red Hat Enterprise Linux with HA",
+            "operation": "RunInstances:1010"
         },
         {
             "platform": "Red Hat Enterprise Linux with SQL Server Web",
             "operation": "RunInstances:0210"
+        },
+        {
+            "platform": "Red Hat Enterprise Linux with SQL Server Standard",
+            "operation": "RunInstances:0014"
+        },
+        {
+            "platform": "Red Hat Enterprise Linux with SQL Server Standard and HA",
+            "operation": "RunInstances:1014"
+        },
+        {
+            "platform": "Red Hat Enterprise Linux with SQL Server Enterprise",
+            "operation": "RunInstances:0110"
+        },
+        {
+            "platform": "Red Hat Enterprise Linux with SQL Server Enterprise and HA",
+            "operation": "RunInstances:1110"
         },
         {
             "platform": "Windows",

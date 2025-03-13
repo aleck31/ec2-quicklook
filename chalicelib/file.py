@@ -50,7 +50,6 @@ def find_file(file_name: str, search_from_base_path: str = None) -> str:
     if search_from_base_path is None:
         search_from_base_path = os.path.dirname(
             os.path.dirname(os.path.abspath(__file__)))
-    logger.info(f"Start find_file: {file_name}, search from {search_from_base_path}")
 
     file_path = None
     # Get current location as base path
@@ -62,5 +61,4 @@ def find_file(file_name: str, search_from_base_path: str = None) -> str:
     if file_path is None:
         raise FileNotFoundError(f"File {file_name} not found.")
 
-    logger.info(f"End file_file: {file_name}: {file_path}")
     return file_path

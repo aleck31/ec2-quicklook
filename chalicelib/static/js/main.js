@@ -1,3 +1,5 @@
+console.log('Loading modular main.js...');
+
 new Vue({
   el: '#app',
   delimiters: ['[[', ']]'],  // Set delimiters for this instance
@@ -10,19 +12,23 @@ new Vue({
       region: 'us-east-1',
       arch: 'x86_64',
       operation: '',
+      category: '',
       family: '',
       type: '',
       voltype: 'gp3',
       volsize: 60
     },
     loading: false,
+    typeLoading: false,
     validated: false,
     instance: null,
     volume: null,
     previousPrice: null,
     comparisonItems: [],
+    highlightedRowIndex: -1, // Track which row to highlight
     regionOptions: [],
     operationOptions: [],
+    categoryOptions: [],
     familyOptions: [],
     typeOptions: [],
     voltypeOptions: [],
@@ -41,13 +47,15 @@ new Vue({
       return change;
     },
     canCompare() {
-      return this.instance && this.comparisonItems.length < 4;
+      return this.instance && this.comparisonItems.length < 8;
     },
     hardwareItems() {
-      return this.instance ? Object.entries(this.instance.hardwareSpecs).map(([key, value]) => ({
-        key,
-        value
-      })) : [];
+      return this.instance ? Object.entries(this.instance.hardwareSpecs)
+        .filter(([_, value]) => value !== null && value !== undefined && value !== '') // Filter out any empty entries
+        .map(([key, value]) => ({
+          key,
+          value
+        })) : [];
     },
     softwareItems() {
       return this.instance ? Object.entries(this.instance.softwareSpecs).map(([key, value]) => ({
@@ -75,11 +83,13 @@ new Vue({
     },
     comparisonFields() {
       return [
+        { key: 'region', label: 'Region' },
         { key: 'type', label: 'Instance Type' },
-        { key: 'price', label: 'Price' },
-        { key: 'vcpu', label: 'vCPU' },
+        { key: 'price', label: 'Price (Month)' },
+        { key: 'vcpu', label: 'Processor' },
         { key: 'memory', label: 'Memory' },
-        { key: 'network', label: 'Network Performance' }
+        { key: 'network', label: 'Network Performance' },
+        { key: 'actions', label: '' }
       ];
     }
   },
@@ -133,12 +143,14 @@ new Vue({
         const response = await axios.get('instance/family', {
           params: {
             region: this.form.region,
-            arch: this.form.arch
+            arch: this.form.arch,
+            category: this.form.category
           }
         });
+        console.log('API Response:', response.data);
         this.familyOptions = response.data.map(item => ({
           value: item.name,
-          text: `${item.description}: ${item.name}`
+          text: `${item.name}  :  ${item.note}`
         }));
         // Set default family if available
         if (this.familyOptions.length > 0) {
@@ -157,6 +169,7 @@ new Vue({
     async updateTypes() {
       if (!this.form.family) return;
       
+      this.typeLoading = true;
       try {
         // Store current size suffix before updating types
         const currentType = this.form.type;
@@ -233,26 +246,68 @@ new Vue({
         this.form.type = '';
         this.familyState = false;
         this.familyFeedback = 'Failed to load instance types. Please try again.';
+      } finally {
+        this.typeLoading = false;
       }
     },
     addToComparison() {
-      if (!this.instance || this.comparisonItems.length >= 4) return;
+      if (!this.instance || this.comparisonItems.length >= 8) return;
 
+      // Check if this instance type is already in the comparison
+      const existingIndex = this.comparisonItems.findIndex(item => 
+        item.type === this.form.type && 
+        item.region === this.form.region
+      );
+      if (existingIndex >= 0) {
+        // Instance type from this region already in comparison, highlight the row
+        this.highlightRow(existingIndex);
+        return;
+      }
+
+      // Add the current instance to the comparison list
       const item = {
         type: this.form.type,
-        price: `${this.instance.listPrice.pricePerUnit.currency}${this.instance.listPrice.pricePerUnit.value.toFixed(2)}/${this.instance.listPrice.unit}`,
-        vcpu: this.instance.hardwareSpecs.vCPU,
-        memory: this.instance.hardwareSpecs.Memory,
-        network: this.instance.hardwareSpecs['Network Performance']
+        region: this.form.region,
+        price: `${this.instance.listPrice.pricePerUnit.currency} ${this.instance.listPrice.pricePerUnit.value.toFixed(2)}`,
+        vcpu: `${this.instance.hardwareSpecs.physicalProcessor} ${this.instance.hardwareSpecs.clockSpeed}`,
+        memory: this.instance.hardwareSpecs.memory,
+        network: this.instance.hardwareSpecs.networkPerformance,
+        _rowVariant: '' // Default no highlight
       };
 
       this.comparisonItems.push(item);
-      this.$bvModal.show('compare-modal');
+    },
+    
+    highlightRow(index) {
+      // Set the row variant to warning (yellow highlight)
+      this.$set(this.comparisonItems[index], '_rowVariant', 'warning');
+      
+      // Reset the highlight after a short delay
+      setTimeout(() => {
+        if (this.comparisonItems[index]) {
+          this.$set(this.comparisonItems[index], '_rowVariant', '');
+        }
+      }, 2000);
+    },
+    
+    removeFromComparison(index) {
+      if (index >= 0 && index < this.comparisonItems.length) {
+        this.comparisonItems.splice(index, 1);
+      }
     }
   },
   watch: {
     'form.arch'() {
-      this.updateFamily();
+      this.form.category = '';
+      this.form.family = '';
+      this.form.type = '';
+    },
+    'form.category'() {
+      this.form.family = '';
+      this.form.type = '';
+      if (this.form.category) {
+        this.updateFamily();
+      }
     },
     'form.region'() {
       this.updateTypes();
@@ -264,10 +319,11 @@ new Vue({
   async created() {
     try {
       // Load initial data
-      const [regionResponse, operationResponse, voltypeResponse] = await Promise.all([
+      const [regionResponse, operationResponse, voltypeResponse, categoryResponse] = await Promise.all([
         axios.get('instance/regions'),
         axios.get('instance/operations'),
-        axios.get('instance/voltypes')
+        axios.get('instance/voltypes'),
+        axios.get('instance/categories')
       ]);
 
       this.regionOptions = regionResponse.data.map(region => ({
@@ -285,9 +341,20 @@ new Vue({
         text: vt
       }));
 
+      this.categoryOptions = categoryResponse.data.map(cat => ({
+        value: cat.category,
+        text: `${cat.display_name}  -  ${cat.description}`
+      }));
+
       // Set default values
       this.form.operation = this.operationOptions.find(op => op.text === 'Linux/UNIX')?.value;
-      await this.updateFamily();
+      
+      // Set default category to 'compute'
+      const defaultCategory = this.categoryOptions.find(cat => cat.value === 'general');
+      if (defaultCategory) {
+        this.form.category = defaultCategory.value;
+        this.updateFamily();
+      }
 
     } catch (error) {
       console.error('Error loading initial data:', error);

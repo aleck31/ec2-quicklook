@@ -2,4 +2,3 @@ boto3
 chalice
 PyJWT
 jinja2
-pydantic

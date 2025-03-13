@@ -1,16 +1,28 @@
 import os
 import jinja2
 import boto3
-from typing import Dict, Any, List, Optional
+from datetime import datetime, timedelta
+from typing import Dict, Any, List
 from chalice.app import Response
 from chalicelib import sdk, file, config
-from chalicelib.utils import build_api_endpoint
-from app import logger
+from chalicelib.utils import build_api_endpoint, optimize_js
+from app import logger, app
 from . import bp
+
 
 
 _EC2_CLIENT = None
 _PRICE_CLIENT = None
+
+
+def get_cache_headers(type: str = 'application/json', max_age: int = 3600) -> Dict[str, str]:
+    """Generate cache control headers with specified max age"""
+    expires = datetime.now() + timedelta(seconds=max_age)
+    return {
+        'Content-Type': type,
+        'Cache-Control': f'public, max-age={max_age}',
+        'Expires': expires.strftime('%a, %d %b %Y %H:%M:%S GMT')        
+    }
 
 
 def get_ec2_client(region: str) -> sdk.EC2Client:
@@ -182,11 +194,11 @@ def index() -> Response:
             'instance': instance,
             'volume': volume,
             'apiDocsUrl': apiDocsUrl,
-            'version': config.get_version('app')
+            'version': app.version['version']
         }
 
         return Response(
-            body=render('chalicelib/webui/index.html', context),
+            body=render('chalicelib/webui/main.html', context),
             status_code=200, 
             headers={"Content-Type": "text/html"}
         )
@@ -226,7 +238,8 @@ def detail() -> Response:
             'region': region,
             'region_list': region_list,
             'instance_type': instance_type,
-            'apiDocsUrl': apiDocsUrl
+            'apiDocsUrl': apiDocsUrl,
+            'version': app.version['version']
         }
 
         return Response(
@@ -259,7 +272,7 @@ def get_main_css(file_name: str) -> Response:
         return Response(
             body=content, 
             status_code=200,
-            headers={"Content-Type": "text/css"},
+            headers=get_cache_headers(type="text/css", max_age=86400) # Cache for 24 hours
         )
     except Exception as ex:
         logger.error(f"Failed to get CSS file {css_file}: {str(ex)}")
@@ -270,23 +283,32 @@ def get_main_css(file_name: str) -> Response:
         )
 
 
-@bp.route("/js/{file_name}", methods=["GET"])
-def get_main_js(file_name: str) -> Response:
+@bp.route("/js/{file_path}", methods=["GET"])
+def get_optimized_js(file_path: str, is_optz: bool = True) -> Response:
     """Get Javascript Endpoint
     
     Args:
-        file_name: Name of JS file without extension
+        path: Path to JS file without extension, can include subdirectories
         
     Returns:
         Response with JavaScript content or error page
     """
-    js_file = file_name + '.js'
+    js_file = file_path + '.js'
     try:
+        # Read the original content
         content = file.get_static_file(file_name=js_file)
+
+        # Only optimize file if is_obfs is true
+        if is_optz :
+            content = optimize_js(content)
+
         return Response(
             body=content, 
             status_code=200,
-            headers={"Content-Type": "application/javascript; charset=utf-8"},
+            headers={
+                "Content-Type": "application/javascript; charset=utf-8",
+                "Cache-Control": "no-cache"
+            },
         )
     except Exception as ex:
         logger.error(f"Failed to get JS file {js_file}: {str(ex)}")
@@ -308,5 +330,5 @@ def get_favicon() -> Response:
     return Response(
         body=icon, 
         status_code=200,
-        headers={"Content-Type": "image/svg+xml"},
+        headers=get_cache_headers(type="image/svg+xml", max_age=604800)  # Cache for 7 days
     )

@@ -1,103 +1,72 @@
-/* Hide Vue template syntax during page load */
-[v-cloak] {
-  display: none;
+/* Global Styles */
+:root {
+  --primary-color: #232f3e;
+  --secondary-color: #ff9900;
+  --accent-color: #37475a;
+  --success-color: #28a745;
+  --info-color: #17a2b8;
+}
+
+body {
+  background-color: #f8f9fa;
 }
 
 /* Navigation Bar */
 #navigation-bar {
-  height: 60px;
-  background: #313131;
-  font-size: 22px;
-  font-family: 'Gill Sans', sans-serif;
+  background-color: var(--primary-color);
+  padding: 0.5rem 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#logo-title p {
   color: white;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
-
-#navigation-bar .row {
-  height: 100%;
-  align-items: center;
-}
-
-#navigation-bar img {
-  height: 42px;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-#navigation-bar img:hover {
-  transform: scale(1.05);
-}
-
-#navigation-bar #logo {
-  padding: 10px 0;
-  margin-bottom: 0;
-}
-
-#navigation-bar #logo-title {
-  padding: 10px 0;
+  font-size: 1.5rem;
   margin: 0;
+  line-height: 42px;
+  padding-left: 0.5rem;
 }
 
-#navigation-bar #nav-links {
-  padding: 10px 0;
-  text-align: right;
+#logo {
+  padding-right: 0;
 }
 
-#navigation-bar #nav-links p {
-  font-size: 0.6em;
+#nav-links a {
+  color: var(--secondary-color);
   font-style: italic;
-  color: white;
-  margin: 0;
-}
-
-/* Sidebar */
-#container-main #sidebar {
-  background: #5d5d5d;
-  padding: 15px 10px;
-  color: white;
-  position: sticky;
-  top: 60px;
-  height: calc(100vh - 60px);
-  overflow-y: auto;
-}
-
-#sidebar a {
-  color: rgb(255, 244, 86);
   text-decoration: none;
-  transition: color 0.2s;
+  line-height: 42px;
 }
 
-#sidebar a:hover {
-  color: rgb(255, 255, 150);
+#nav-links a:hover {
+  color: #ffb84d;
 }
 
-/* Main Content */
-#container-main #contents {
-  min-height: calc(100vh - 60px);
-  padding: 15px;
-}
-
-/* Cards and Tables */
+/* Cards */
 .card {
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border: none;
+  margin-bottom: 1.5rem;
 }
 
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+.card-header {
+  background-color: var(--primary-color);
+  color: white;
+  border-bottom: none;
 }
 
-.table-responsive {
-  margin-bottom: 1rem;
+/* Instance and Volume card headers */
+.instance-price-card .card-header,
+.volume-price-card .card-header {
+  background-color: #00000008 !important;
+  border-bottom: 1px solid #00000020;
+  color: var(--primary-color);
 }
 
-/* Form Elements */
-.form-control:focus,
-.custom-select:focus {
-  border-color: #80bdff;
-  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+.bg-light.card-header {
+  background-color: #f8f9fa !important;
+  color: var(--primary-color);
+  border-bottom: 1px solid rgba(0,0,0,0.125);
 }
 
 /* Hide number input spinners */
@@ -112,20 +81,38 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+/* Form Elements */
+.form-control:focus, .custom-select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.btn-success:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
+/* Price Cards */
+.pricing-card-title {
+  color: var(--primary-color);
+  font-size: 2rem;
+}
+
 /* Price Change Badge */
 .price-change-indicator {
-  font-size: 0.4em;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.2rem;
+  margin-left: 0.25rem;
   position: relative;
-  top: -0.7em;
-  margin-left: 0.2em;
-  padding: 0.2em 0.4em;
+  top: -0.5rem;
   display: inline-block;
   line-height: 1;
-  text-align: center;
-  white-space: nowrap;
-  vertical-align: baseline;
-  border-radius: 0.25rem;
-  transition: all 0.3s;
 }
 
 .price-change-indicator.up {
@@ -138,94 +125,95 @@ input[type="number"] {
   color: white;
 }
 
-/* Collapse Transitions */
-.collapse-enter-active,
-.collapse-leave-active {
-  transition: all 0.3s;
+/* Comparison Table */
+.table {
+  margin-bottom: 0;
 }
 
-.collapse-enter,
-.collapse-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
+.table th {
+  background-color: #f8f9fa;
+  border-top: none;
 }
 
-/* Mobile Responsiveness */
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(0,0,0,.02);
+}
+
+/* Collapsible Sections */
+.btn-link {
+  text-decoration: none;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+}
+
+.btn-link:hover {
+  text-decoration: none;
+}
+
+.btn-link i {
+  transition: transform 0.2s;
+}
+
+.collapsed .btn-link i {
+  transform: rotate(-90deg);
+}
+
+/* Loading State */
+.b-spinner {
+  margin-right: 0.5rem;
+}
+
+/* Responsive Adjustments */
 @media (max-width: 768px) {
-  #navigation-bar {
-    height: auto;
-    padding: 10px 0;
+  #logo-title p {
+    font-size: 1.25rem;
   }
-
-  #navigation-bar #logo-title {
-    text-align: center;
-    font-size: 18px;
+  
+  .pricing-card-title {
+    font-size: 1.5rem;
   }
-
-  #navigation-bar #nav-links {
-    text-align: center;
-  }
-
-  #container-main #sidebar {
-    position: static;
-    height: auto;
-    margin-bottom: 15px;
-  }
-
-  .card {
-    margin-bottom: 15px;
-  }
-
-  .table-responsive {
-    font-size: 14px;
-  }
-
-  .btn {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .btn + .btn {
-    margin-left: 0 !important;
+  
+  .card-body {
+    padding: 1rem;
   }
 }
 
-/* Loading States */
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255,255,255,0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+/* Vue Cloak */
+[v-cloak] {
+  display: none;
 }
 
-/* Comparison Modal */
-.modal-xl {
-  max-width: 95%;
+/* Form Validation */
+.was-validated .form-control:valid, .form-control.is-valid {
+  border-color: var(--success-color);
 }
 
-/* JSON Viewer Styles */
-.json-viewer {
-  font-family: monospace;
-  font-size: 14px;
-  line-height: 1.4;
+.was-validated .form-control:invalid, .form-control.is-invalid {
+  border-color: #dc3545;
 }
 
-.json-viewer .collapsible {
-  cursor: pointer;
+/* Instance Comparison */
+.comparison-badge {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: var(--info-color);
+  color: white;
+  margin-left: 0.5rem;
 }
 
-.json-viewer .collapsed::before {
-  content: '▶';
-  margin-right: 5px;
+/* Footer */
+footer {
+  border-top: 1px solid rgba(0,0,0,0.1);
+  padding-top: 1rem;
 }
 
-.json-viewer .expanded::before {
-  content: '▼';
-  margin-right: 5px;
+footer a {
+  color: var(--accent-color);
+}
+
+footer a:hover {
+  color: var(--primary-color);
+  text-decoration: none;
 }

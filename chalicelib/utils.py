@@ -1,7 +1,10 @@
 import os
+import re
 import json
+import random
+import string
 import logging
-from typing import Optional, Dict, Any, Union, List, Literal, TypedDict
+from typing import Optional, Dict, Any, Union
 from urllib.parse import urlencode
 from chalice.app import Request
 
@@ -166,3 +169,42 @@ def remove_base_path_slash(api_spec_json_dict: Dict) -> Dict:
     except Exception as e:
         logger.error(f"Failed to process API spec: {str(e)}")
         raise
+
+def optimize_js(content: str) -> str:
+    """Optimize JavaScript content while preserving Vue.js functionality
+
+    Args:
+        content: Original JavaScript code
+        
+    Returns:
+        Optimized JavaScript code
+    """
+    try:
+        # 1. Remove comments and unnecessary whitespace
+        content = re.sub(r'//.*?\n|/\*.*?\*/', '', content, flags=re.S)
+        content = re.sub(r'\s+', ' ', content)
+        content = re.sub(r'\s*([,{}()=+\-*/|&;:?])\s*', r'\1', content)
+        
+        # 2. Simple string literal encoding for non-critical strings
+        def encode_str(match):
+            s = match.group(1)
+            # Skip encoding for critical strings
+            if any(x in s for x in ['product/', 'instance/', 'api/', '#', '.', 'v-']):
+                return f'"{s}"'
+            # Simple base64-like encoding
+            encoded = ''.join(chr((ord(c) + 5) % 128) for c in s)
+            return f'"_{encoded}"'
+            
+        content = re.sub(r'"([^"]*)"', encode_str, content)
+        
+        # 3. Add minimal wrapper with decoder
+        content = f"""
+(function(){{
+var d=s=>s[0]=="_"?[...s.slice(1)].map(c=>String.fromCharCode((c.charCodeAt(0)-5+128)%128)).join(""):s;
+{content.replace('"_', 'd("_')}
+}})();"""
+        
+        return content
+    except Exception as ex:
+        logger.error(f"JavaScript obfuscation failed: {str(ex)}")
+        return content  # Return original content if obfuscation fails

@@ -6,8 +6,10 @@ A web tool that helps you quickly query EC2 instance information, including conf
 
 - 🔍 Query EC2 instance details and OD pricing
 - 💾 EBS volume OD pricing
-- 🌐 Support for both AWS Global and China regions
 - 📊 Detailed instance specifications
+- 💰 Price change indicators
+- 📈 Instance price comparison (up to 8 instances)
+- 🌐 Support for both AWS Global and China regions
 - 🚀 Serverless deployment with AWS Chalice
 - 📝 Swagger UI API documentation
 
@@ -20,7 +22,7 @@ You can deploy it to the AWS cloud with a single command. No servers, containers
 ## Architecture
 
 - **Infrastructure**: AWS Lambda + API Gateway (managed by Chalice)
-- **Storage**: Amazon DynamoDB
+- **Database**: Amazon DynamoDB
 - **Frontend**: Vue.js with Bootstrap-Vue components
 - **Backend**: Python with AWS Chalice framework
 - **API Documentation**: Swagger UI
@@ -28,7 +30,7 @@ You can deploy it to the AWS cloud with a single command. No servers, containers
 ## File Structure
 
 ec2-quicklook/
-├── app.py                 # Main application entry point
+├── app.py               # Main application entry point
 ├── chalicelib/
 │   ├── config.py         # Configuration management
 │   ├── sdk.py            # AWS SDK integration
@@ -36,9 +38,10 @@ ec2-quicklook/
 │   ├── models.py         # Data models
 │   ├── product/          # Product-related functionality
 │   ├── swagger/          # Swagger UI integration
-│   ├── webui/             # Web interface
-│   └── static/          # Static assets
-└── tests/               # Test files
+│   ├── webui/            # Web interface
+│   └── static/           # Static assets
+│      └── js/            # VUE JavaScript
+└── tests/              # Test files
 
 ## Prerequisites
 

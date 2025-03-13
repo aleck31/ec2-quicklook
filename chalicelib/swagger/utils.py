@@ -1,6 +1,5 @@
 import boto3
 import json
-from typing import Dict, Any, TypedDict
 from chalice import Chalice
 from chalicelib.utils import build_api_endpoint, remove_base_path_slash
 from .webui import docs
@@ -89,9 +88,17 @@ def export_api_to_json(app: Chalice, exportType: str = "oas30") -> str:
         decoded_content = body_data.decode("utf8")
         logger.debug(decoded_content)
 
+        # Parse API spec
+        api_spec = json.loads(decoded_content)
+        
         # Remove basePath's slash to prevent incorrect url
-        api_spec = remove_base_path_slash(json.loads(decoded_content))
-
+        api_spec = remove_base_path_slash(api_spec)
+        
+        # Add version info
+        if 'info' not in api_spec:
+            api_spec['info'] = {}
+        api_spec['info']['version'] = app.version['version']
+        
         # Load the JSON to a Python list & dump it back out as formatted JSON
         result = json.dumps(api_spec, indent=4, sort_keys=False)
         return result

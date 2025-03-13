@@ -1,8 +1,7 @@
 import ast
 from functools import lru_cache
 import boto3
-from botocore.config import Config
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from chalicelib.config import load_config
 from chalicelib.models import (
     EC2ServiceError, PricingServiceError,
@@ -32,10 +31,32 @@ class EC2Client:
             raise EC2ServiceError(f"Failed to load operations config: {str(ex)}")
 
     @lru_cache(maxsize=128)
-    def list_instance_family(self, architecture: str) -> List[Dict[str, Any]]:
-        """List EC2 instance families with caching"""
+    def list_instance_categories(self) -> List[Dict[str, Any]]:
+        """List EC2 instance categories"""
         try:
             instance_list = load_config('instance')
+            categories = {}
+            
+            for family in instance_list:
+                if family['category'] not in categories:
+                    categories[family['category']] = {
+                        'category': family['category'],
+                        'description': family['description'],
+                        'display_name': family['display_name']
+                    }
+            
+            return list(categories.values())
+        except Exception as ex:
+            logger.error(f"Failed to load instance categories: {str(ex)}")
+            raise EC2ServiceError(f"Failed to load instance categories: {str(ex)}")
+
+    @lru_cache(maxsize=128)
+    def list_instance_family(self, architecture: str) -> List[Dict[str, Any]]:
+        """List EC2 instance families"""
+        try:
+            logger.debug(f"Cache info before: {self.list_instance_family.cache_info()}")
+            instance_list = load_config('instance')
+            
             family_list = []            
             for family in instance_list:
                 for instance in family['family']:
@@ -43,16 +64,19 @@ class EC2Client:
                         family_list.append({
                             'category': family['category'],
                             'name': instance['name'],
-                            'description': instance['description'],
+                            'note': instance['note'],
                             'architecture': instance['architecture']
                         })
+
+            logger.debug(f"Filtered family list for {architecture}: {len(family_list)}")
             return family_list
         except Exception as ex:
             logger.error(f"Failed to load instance families: {str(ex)}")
             raise EC2ServiceError(f"Failed to load instance families: {str(ex)}")
 
+    @lru_cache(maxsize=128)
     def get_instance_types(self, architecture: str, instance_family: str) -> List[Dict[str, str]]:
-        """Get EC2 instance types"""
+        """Get EC2 instance types with caching"""
         try:
             filters = [
                 {'Name': 'current-generation', 'Values': ['true']},

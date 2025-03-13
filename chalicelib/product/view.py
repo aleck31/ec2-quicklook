@@ -3,7 +3,7 @@ import ast
 import os
 from functools import lru_cache
 from datetime import datetime, timedelta
-from typing import Dict, Any, Union, Optional
+from typing import Dict
 from chalicelib.sdk import PricingClient, EC2Client
 from chalicelib.models import (
     AWSServiceError, EC2ServiceError, PricingServiceError,
@@ -184,62 +184,62 @@ def get_param_list(res: str) -> Response:
     query = bp.current_request.query_params or {}
     
     try:
-        # These endpoints don't require query parameters
-        if res in ['regions', 'operations', 'voltypes']:
-            if res == 'regions':
+        # Handle endpoints using pattern matching
+        match res:
+            # Endpoints that don't require query parameters
+            case 'regions':
                 resp = list_ec2_regions()
-            elif res == 'operations':
+            case 'operations':
                 eclient = get_ec2_client('us-east-1')  # Default region for operations
                 resp = eclient.list_usage_operations()
-            elif res == 'voltypes':
+            case 'categories':
+                eclient = get_ec2_client('us-east-1')  # Default region for categories
+                resp = eclient.list_instance_categories()
+            case 'voltypes':
                 pclient = get_pricing_client()
                 resp = pclient.get_attribute_values(
                     service_code='AmazonEC2',
                     attribute_name='volumeApiName'
                 ).get('data', [])
                 # Remove unsupported volume types
-                if 'sc1' in resp:
-                    resp.remove('sc1')
-                if 'st1' in resp:
-                    resp.remove('st1')
-            return Response(
-                body=resp,
-                headers=get_cache_headers(86400)  # Cache for 24 hours
-            )
+                resp = [v for v in resp if v not in ['sc1', 'st1']]
 
-        # For other endpoints that require query parameters
-        if not query:
-            logger.warning(f"Missing query parameters for instance {res} request")
-            raise BadRequestError('incorrect query parameter')
+            # Endpoints that require query parameters
+            case 'types' | 'family' | 'detail':
+                if not query:
+                    logger.warning(f"Missing query parameters for instance {res} request")
+                    raise BadRequestError('incorrect query parameter')
 
-        logger.debug(f"Getting instance {res} for region: {query.get('region')}")
-        eclient = get_ec2_client(query.get('region'))
-        
-        # /instance/types?region=xx&arch=xx&family=xx
-        if res == 'types':
-            resp = eclient.get_instance_types(
-                architecture=query['arch'],
-                instance_family=query.get('family', 'all')
-            )
-        # /instance/family?region=xx&arch=xx
-        elif res == 'family':
-            resp = eclient.list_instance_family(
-                architecture=query['arch']
-            )
-        # /instance/detail?region=xx&type=xx
-        elif res == 'detail':
-            resp = eclient.get_instance_detail(
-                instance_type=query['type']
-            )
-        else:
-            logger.error(f"Invalid resource type requested: {res}")
-            raise EC2ServiceError(
-                f"Invalid resource type: {res}",
-                error_code="INVALID_RESOURCE"
-            )
+                logger.debug(f"Getting instance {res} for region: {query.get('region')}")
+                eclient = get_ec2_client(query.get('region'))
+                
+                match res:
+                    case 'types':  # /instance/types?region=xx&arch=xx&family=xx
+                        resp = eclient.get_instance_types(
+                            architecture=query['arch'],
+                            instance_family=query.get('family', 'all')
+                        )
+                    case 'family':  # /instance/family?region=xx&arch=xx&category=xx
+                        resp = eclient.list_instance_family(
+                            architecture=query['arch']
+                        )
+                        # Filter by category if provided
+                        if query.get('category'):
+                            resp = [f for f in resp if f['category'] == query['category']]
+                    case 'detail':  # /instance/detail?region=xx&type=xx
+                        resp = eclient.get_instance_detail(
+                            instance_type=query['type']
+                        )
 
-        # Use longer cache for relatively static data
-        max_age = 86400 if res in ['family', 'operation'] else 3600
+            case _:
+                logger.error(f"Invalid resource type requested: {res}")
+                raise EC2ServiceError(
+                    f"Invalid resource type: {res}",
+                    error_code="INVALID_RESOURCE"
+                )
+
+        # Use longer cache duration (24 hours) for relatively static data
+        max_age = 86400 if res in ['regions', 'operations', 'voltypes', 'categories', 'family', 'types'] else 3600
         return Response(
             body=resp,
             headers=get_cache_headers(max_age)

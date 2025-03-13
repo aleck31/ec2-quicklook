@@ -1,66 +1,706 @@
 {% extends "base.html" %}
 
 {% block title %} - detail{% endblock %}
-{% block head %} {{ super() }} {% endblock %}
+{% block head %}
+  {{ super() }}
+{% endblock %}
 
 {% block content %}
-  <a class="text-primary" href="javascript:history.go(-1)">« Back</a>
+  <!-- Hidden form fields for Vue data -->
+  <input type="hidden" id="region" value="{{ region }}">
+  <input type="hidden" id="type" value="{{ instance_type }}">
 
-  <div class="row" style="display: none">
-    <div class="col-md-2 mb-2">
-      <label for="region">Region</label>
-      <select id="region" class="custom-select d-block w-100" required="">
-        <option value="">Choose...</option>
-        {% for region in region_list %}
-          {% if region.code == 'us-east-1' %}
-          <option selected value="{{ region.code }}">{{ '%s %s' %(region.code, region.name) }}</option>
-          {% else %}
-          <option value="{{ region.code }}">{{ '%s %s' %(region.code, region.name) }}</small></option>
-          {% endif %}
-        {% endfor %}
-      </select>
-      <div class="invalid-feedback">
-        Please select a valid Region.
+  <div id="app" v-cloak>
+    <div class="row">
+      <div class="col-12 my-3">
+        <h4 class="mb-0">
+          Metadata for: <em>{{ instance_type }} in {{ region }}</em>
+          <b-spinner small v-if="loading" class="ml-2"></b-spinner>
+        </h4>
       </div>
     </div>
 
-    <div class="col-md-2 mb-2">
-      <label for="types">Instance Type</label>
-      <select id="types" class="custom-select d-block w-100" required="">
-        <option selected value="{{ instance_type }}">{{ instance_type }}</option>
-      </select>
-      <div class="invalid-feedback">
-        Please select a valid Instance Type.
+    <div v-if="!loading && instanceDetail" class="row">
+      <!-- Basic Information -->
+      <div class="col-12 mb-2">
+        <b-card no-body>
+          <b-card-header header-bg-variant="light">
+            <h5 class="mb-0">Basic Information</h5>
+          </b-card-header>
+          <b-card-body>
+            <b-row>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Generation:</strong>
+                  <b-badge :variant="instanceDetail.CurrentGeneration ? 'success' : 'secondary'">
+                    [[ instanceDetail.CurrentGeneration ? 'Current' : 'Previous' ]]
+                  </b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Free Tier:</strong>
+                  <b-badge :variant="instanceDetail.FreeTierEligible ? 'success' : 'secondary'">
+                    [[ instanceDetail.FreeTierEligible ? 'Eligible' : 'Ineligible' ]]
+                  </b-badge>
+                </div>
+              </b-col>
+              <b-col md="6" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Usage Classes:</strong>
+                  <b-badge v-for="usage in instanceDetail.SupportedUsageClasses" 
+                          :key="usage" 
+                          variant="info" 
+                          class="mr-1">
+                    [[ usage ]]
+                  </b-badge>
+                </div>
+              </b-col>
+            </b-row>
+            <b-row>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Virtualization:</strong>
+                  <b-badge v-for="virt in instanceDetail.SupportedVirtualizationTypes" 
+                          :key="virt" 
+                          variant="info" 
+                          class="mr-1">
+                    [[ virt ]]
+                  </b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Hypervisor:</strong>
+                  <b-badge variant="info">[[ instanceDetail.BareMetal ? 'N/A (BareMetal)' : instanceDetail.Hypervisor ]]</b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Boot Modes:</strong>
+                  <b-badge v-for="mode in instanceDetail.SupportedBootModes" 
+                          :key="mode" 
+                          variant="info" 
+                          class="mr-1">
+                    [[ mode ]]
+                  </b-badge>
+                </div>
+              </b-col>
+            </b-row>
+
+            <!-- Processor Information -->
+            <h6 class="mt-4 mb-2">Processor Information</h6>
+            <b-row>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Architecture:</strong>
+                  <b-badge v-for="arch in instanceDetail.ProcessorInfo.SupportedArchitectures" 
+                          :key="arch" 
+                          variant="info" 
+                          class="mr-1">
+                    [[ arch ]]
+                  </b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">vCPUs:</strong>
+                  <span>[[ instanceDetail.VCpuInfo.DefaultVCpus ]] ([[ instanceDetail.VCpuInfo.DefaultCores ]] Cores x [[ instanceDetail.VCpuInfo.DefaultThreadsPerCore ]] Threads)</span>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Clock Speed:</strong>
+                  <span>[[ instanceDetail.ProcessorInfo.SustainedClockSpeedInGhz ]] GHz</span>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Manufacturer:</strong>
+                  <span>[[ instanceDetail.ProcessorInfo.Manufacturer ]]</span>
+                </div>
+              </b-col>
+            </b-row>
+
+            <!-- Additional vCPU Configuration -->
+            <template v-if="instanceDetail.VCpuInfo.ValidCores || instanceDetail.VCpuInfo.ValidThreadsPerCore">
+              <h6 class="mt-2 mb-2">Additional vCPU Configuration</h6>
+              <b-row>
+                <b-col v-if="instanceDetail.VCpuInfo.ValidCores" md="6" class="mb-3">
+                  <div class="d-flex align-items-center">
+                    <strong class="text-muted mr-2">Valid Core Counts:</strong>
+                    <span>[[ instanceDetail.VCpuInfo.ValidCores.join(', ') ]]</span>
+                  </div>
+                </b-col>
+                <b-col v-if="instanceDetail.VCpuInfo.ValidThreadsPerCore" md="6" class="mb-3">
+                  <div class="d-flex align-items-center">
+                    <strong class="text-muted mr-2">Valid Threads per Core:</strong>
+                    <span>[[ instanceDetail.VCpuInfo.ValidThreadsPerCore.join(', ') ]]</span>
+                  </div>
+                </b-col>
+              </b-row>
+            </template>
+
+            <!-- Memory Information -->
+            <h6 class="mt-4 mb-2">Memory Information</h6>
+            <b-row>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Memory Size:</strong>
+                  <span variant="info">[[ (instanceDetail.MemoryInfo.SizeInMiB / 1024).toFixed(0) ]] GB ([[ instanceDetail.MemoryInfo.SizeInMiB ]] MiB)</span>
+                </div>
+              </b-col>
+            </b-row>
+          </b-card-body>
+        </b-card>
+      </div>
+
+      <!-- Network Information -->
+      <div class="col-12 mb-2">
+        <b-card no-body>
+          <b-card-header header-bg-variant="light">
+            <h5 class="mb-0">Network Information</h5>
+          </b-card-header>
+          <b-card-body>
+            <!-- Basic Network Info -->
+            <b-row>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Bandwidth:</strong>
+                  <span>[[ instanceDetail.NetworkInfo.NetworkPerformance ]]</span>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Max Interfaces:</strong>
+                  <span>[[ instanceDetail.NetworkInfo.MaximumNetworkInterfaces ]]</span>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">IPv6:</strong>
+                  <b-badge :variant="instanceDetail.NetworkInfo.Ipv6Supported ? 'success' : 'secondary'">
+                    [[ instanceDetail.NetworkInfo.Ipv6Supported ? 'supported' : 'unsupported' ]]
+                  </b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Encryption:</strong>
+                  <b-badge :variant="instanceDetail.NetworkInfo.EncryptionInTransitSupported ? 'success' : 'secondary'">
+                    [[ instanceDetail.NetworkInfo.EncryptionInTransitSupported ? 'supported' : 'unsupported' ]]
+                  </b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">IPv4 Addresses:</strong>
+                  <span>[[ instanceDetail.NetworkInfo.Ipv4AddressesPerInterface ]] per interface</span>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">IPv6 Addresses:</strong>
+                  <span>[[ instanceDetail.NetworkInfo.Ipv6AddressesPerInterface ]] per interface</span>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">EFA Support:</strong>
+                  <b-badge :variant="instanceDetail.NetworkInfo.EfaSupported ? 'success' : 'secondary'">
+                    [[ instanceDetail.NetworkInfo.EfaSupported ? 'supported' : 'unsupported' ]]
+                  </b-badge>
+                </div>
+              </b-col>
+              <b-col v-if="instanceDetail.NetworkInfo.EfaSupported" md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Max EFA Interfaces:</strong>
+                  <span>[[ instanceDetail.NetworkInfo.EfaInfo.MaximumEfaInterfaces ]]</span>
+                </div>
+              </b-col>
+            </b-row>
+
+            <!-- Network Cards -->
+            <template v-if="instanceDetail.NetworkInfo.NetworkCards && instanceDetail.NetworkInfo.NetworkCards.length">
+              <b-button v-b-toggle.network-cards-collapse variant="link" class="p-0 mb-2">
+                <h6 class="d-inline">Network Cards Details</h6>
+                <i class="ml-2 fas fa-chevron-down"></i>
+              </b-button>
+              <b-collapse id="network-cards-collapse" class="mt-2" visible>
+                <b-table-simple hover responsive class="mb-0">
+                  <b-thead>
+                    <b-tr>
+                      <b-th>Card Index</b-th>
+                      <b-th>Performance</b-th>
+                      <b-th>Max Interfaces</b-th>
+                      <b-th>Baseline Bandwidth</b-th>
+                      <b-th>Peak Bandwidth</b-th>
+                    </b-tr>
+                  </b-thead>
+                  <b-tbody>
+                    <b-tr v-for="card in instanceDetail.NetworkInfo.NetworkCards" :key="card.NetworkCardIndex">
+                      <b-td>[[ card.NetworkCardIndex ]]</b-td>
+                      <b-td>[[ card.NetworkPerformance ]]</b-td>
+                      <b-td>[[ card.MaximumNetworkInterfaces ]]</b-td>
+                      <b-td>[[ card.BaselineBandwidthInGbps ]] Gbps</b-td>
+                      <b-td>[[ card.PeakBandwidthInGbps ]] Gbps</b-td>
+                    </b-tr>
+                  </b-tbody>
+                </b-table-simple>
+              </b-collapse>
+            </template>
+          </b-card-body>
+        </b-card>
+      </div>
+
+      <!-- Storage Information -->
+      <div class="col-12 mb-2">
+        <b-card no-body>
+          <b-card-header header-bg-variant="light">
+            <h5 class="mb-0">Storage Information</h5>
+          </b-card-header>
+          <b-card-body>
+            <!-- EBS Information -->
+            <b-row>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">EBS Optimization:</strong>
+                  <b-badge :variant="instanceDetail.EbsInfo.EbsOptimizedSupport === 'supported' ? 'success' : instanceDetail.EbsInfo.EbsOptimizedSupport === 'unsupported' ? 'secondary' : 'info'">[[ instanceDetail.EbsInfo.EbsOptimizedSupport ]]</b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">NVMe Support:</strong>
+                  <b-badge :variant="instanceDetail.EbsInfo.NvmeSupport === 'supported' ? 'success' : instanceDetail.EbsInfo.NvmeSupport === 'unsupported' ? 'secondary' : 'info'">[[ instanceDetail.EbsInfo.NvmeSupport ]]</b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Encryption:</strong>
+                  <b-badge :variant="instanceDetail.EbsInfo.EncryptionSupport === 'supported' ? 'success' : instanceDetail.EbsInfo.EncryptionSupport === 'unsupported' ? 'secondary' : 'info'">[[ instanceDetail.EbsInfo.EncryptionSupport ]]</b-badge>
+                </div>
+              </b-col>
+            </b-row>
+
+            <!-- EBS OptimizedInfo -->
+            <template v-if="instanceDetail.EbsInfo.EbsOptimizedInfo">
+              <h6 class="mt-2 mb-3">EBS Optimized Info</h6>
+                <b-table-simple hover responsive class="mb-0">
+                  <b-thead>
+                    <b-tr>
+                      <b-th>Metric</b-th>
+                      <b-th>Bandwidth</b-th>
+                      <b-th>Throughput</b-th>
+                      <b-th>IOPS</b-th>
+                    </b-tr>
+                  </b-thead>
+                  <b-tbody>
+                    <b-tr>
+                      <b-td>Baseline</b-td>
+                      <b-td>[[ instanceDetail.EbsInfo.EbsOptimizedInfo.BaselineBandwidthInMbps ]] Mbps</b-td>
+                      <b-td>[[ instanceDetail.EbsInfo.EbsOptimizedInfo.BaselineThroughputInMBps ]] MB/s</b-td>
+                      <b-td>[[ instanceDetail.EbsInfo.EbsOptimizedInfo.BaselineIops ]]</b-td>
+                    </b-tr>
+                    <b-tr>
+                      <b-td>Maximum</b-td>
+                      <b-td>[[ instanceDetail.EbsInfo.EbsOptimizedInfo.MaximumBandwidthInMbps ]] Mbps</b-td>
+                      <b-td>[[ instanceDetail.EbsInfo.EbsOptimizedInfo.MaximumThroughputInMBps ]] MB/s</b-td>
+                      <b-td>[[ instanceDetail.EbsInfo.EbsOptimizedInfo.MaximumIops ]]</b-td>
+                    </b-tr>
+                  </b-tbody>
+                </b-table-simple>
+            </template>
+
+            <!-- Instance Storage -->
+            <template v-if="instanceDetail.InstanceStorageSupported && instanceDetail.InstanceStorageInfo">
+              <h6 class="mt-4 mb-3">Instance Storage</h6>
+              <b-row>
+                <b-col md="3" class="mb-3">
+                  <div class="d-flex align-items-center">
+                    <strong class="text-muted mr-2">Total Size:</strong>
+                    <span>[[ instanceDetail.InstanceStorageInfo.TotalSizeInGB ]] GB</span>
+                  </div>
+                </b-col>
+                <b-col md="3" class="mb-3">
+                  <div class="d-flex align-items-center">
+                    <strong class="text-muted mr-2">NVMe Support:</strong>
+                    <b-badge :variant="instanceDetail.InstanceStorageInfo.NvmeSupport === 'supported' ? 'success' : instanceDetail.InstanceStorageInfo.NvmeSupport === 'unsupported' ? 'secondary' : 'info'">[[ instanceDetail.InstanceStorageInfo.NvmeSupport ]]</b-badge>
+                  </div>
+                </b-col>
+                <b-col md="3" class="mb-3">
+                  <div class="d-flex align-items-center">
+                    <strong class="text-muted mr-2">Encryption:</strong>
+                    <b-badge :variant="instanceDetail.InstanceStorageInfo.EncryptionSupport === 'supported' ? 'success' : instanceDetail.InstanceStorageInfo.EncryptionSupport === 'unsupported' ? 'secondary' : 'info'">[[ instanceDetail.InstanceStorageInfo.EncryptionSupport ]]</b-badge>
+                  </div>
+                </b-col>
+              </b-row>
+
+              <template v-if="instanceDetail.InstanceStorageInfo.Disks && instanceDetail.InstanceStorageInfo.Disks.length">
+                <b-button v-b-toggle.storage-details-collapse variant="link" class="p-0 mb-2">
+                  <h6 class="d-inline">Instance Storage Details</h6>
+                  <i class="ml-2 fas fa-chevron-down"></i>
+                </b-button>
+                <b-collapse id="storage-details-collapse" class="mt-2" visible>
+                  <b-table-simple hover responsive class="mb-0">
+                    <b-thead>
+                      <b-tr>
+                        <b-th>Type</b-th>
+                        <b-th>Disk Size</b-th>
+                        <b-th>Count</b-th>
+                      </b-tr>
+                    </b-thead>
+                    <b-tbody>
+                      <b-tr v-for="(disk, index) in instanceDetail.InstanceStorageInfo.Disks" :key="index">
+                        <b-td>[[ disk.Type.toUpperCase() ]]</b-td>
+                        <b-td>[[ disk.SizeInGB ]] GB</b-td>
+                        <b-td>[[ disk.Count ]]</b-td>
+                      </b-tr>
+                    </b-tbody>
+                  </b-table-simple>
+                </b-collapse>
+              </template>
+            </template>
+          </b-card-body>
+        </b-card>
+      </div>
+
+      <!-- GPU Information -->
+      <div v-if="instanceDetail.GpuInfo" class="col-12 mb-2">
+        <b-card no-body>
+          <b-card-header header-bg-variant="light">
+            <h5 class="mb-0">GPU Information</h5>
+          </b-card-header>
+          <b-card-body>
+            <!-- Total GPU Memory -->
+            <b-row>
+              <b-col md="4" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Total GPU Memory:</strong>
+                  <span>[[ (instanceDetail.GpuInfo.TotalGpuMemoryInMiB / 1024).toFixed(0) ]] GB</span>
+                </div>
+              </b-col>
+            </b-row>
+
+            <!-- GPU Details Table -->
+            <template v-if="instanceDetail.GpuInfo.Gpus && instanceDetail.GpuInfo.Gpus.length">
+              <b-button v-b-toggle.gpu-details-collapse variant="link" class="p-0 mb-2">
+                <h6 class="d-inline">GPU Details</h6>
+                <i class="ml-2 fas fa-chevron-down"></i>
+              </b-button>
+              <b-collapse id="gpu-details-collapse" class="mt-2" visible>
+                <b-table-simple hover responsive class="mb-0">
+                  <b-thead>
+                    <b-tr>
+                      <b-th>Model</b-th>
+                      <b-th>Manufacturer</b-th>
+                      <b-th>Memory per GPU</b-th>
+                      <b-th>Count</b-th>
+                      <b-th>Total Memory</b-th>
+                    </b-tr>
+                  </b-thead>
+                  <b-tbody>
+                    <b-tr v-for="(gpu, index) in instanceDetail.GpuInfo.Gpus" :key="index">
+                      <b-td>[[ gpu.Name ]]</b-td>
+                      <b-td>[[ gpu.Manufacturer ]]</b-td>
+                      <b-td>[[ (gpu.MemoryInfo.SizeInMiB / 1024).toFixed(0) ]] GB</b-td>
+                      <b-td>[[ gpu.Count ]]</b-td>
+                      <b-td>[[ (gpu.MemoryInfo.SizeInMiB * gpu.Count / 1024).toFixed(0) ]] GB</b-td>
+                    </b-tr>
+                  </b-tbody>
+                </b-table-simple>
+              </b-collapse>
+            </template>
+          </b-card-body>
+        </b-card>
+      </div>
+
+      <!-- FPGA Information -->
+      <div v-if="instanceDetail.FpgaInfo" class="col-12 mb-2">
+        <b-card no-body>
+          <b-card-header header-bg-variant="light">
+            <h5 class="mb-0">FPGA Information</h5>
+          </b-card-header>
+          <b-card-body>
+            <!-- Total FPGA Memory -->
+            <b-row>
+              <b-col md="4" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Total FPGA Memory:</strong>
+                  <span>[[ (instanceDetail.FpgaInfo.TotalFpgaMemoryInMiB / 1024).toFixed(0) ]] GB</span>
+                </div>
+              </b-col>
+            </b-row>
+
+            <!-- FPGA Details Table -->
+            <template v-if="instanceDetail.FpgaInfo.Fpgas && instanceDetail.FpgaInfo.Fpgas.length">
+              <b-button v-b-toggle.fpga-details-collapse variant="link" class="p-0 mb-2">
+                <h6 class="d-inline">FPGA Details</h6>
+                <i class="ml-2 fas fa-chevron-down"></i>
+              </b-button>
+              <b-collapse id="fpga-details-collapse" class="mt-2" visible>
+                <b-table-simple hover responsive class="mb-0">
+                  <b-thead>
+                    <b-tr>
+                      <b-th>Model</b-th>
+                      <b-th>Manufacturer</b-th>
+                      <b-th>Memory per FPGA</b-th>
+                      <b-th>Count</b-th>
+                      <b-th>Total Memory</b-th>
+                    </b-tr>
+                  </b-thead>
+                  <b-tbody>
+                    <b-tr v-for="(fpga, index) in instanceDetail.FpgaInfo.Fpgas" :key="index">
+                      <b-td>[[ fpga.Name ]]</b-td>
+                      <b-td>[[ fpga.Manufacturer ]]</b-td>
+                      <b-td>[[ (fpga.MemoryInfo.SizeInMiB / 1024).toFixed(0) ]] GB</b-td>
+                      <b-td>[[ fpga.Count ]]</b-td>
+                      <b-td>[[ (fpga.MemoryInfo.SizeInMiB * fpga.Count / 1024).toFixed(0) ]] GB</b-td>
+                    </b-tr>
+                  </b-tbody>
+                </b-table-simple>
+              </b-collapse>
+            </template>
+          </b-card-body>
+        </b-card>
+      </div>
+
+      <!-- Media Accelerator Information -->
+      <div v-if="instanceDetail.MediaAcceleratorInfo" class="col-12 mb-2">
+        <b-card no-body>
+          <b-card-header header-bg-variant="light">
+            <h5 class="mb-0">Media Accelerator Information</h5>
+          </b-card-header>
+          <b-card-body>
+            <!-- Total Media Memory -->
+            <b-row>
+              <b-col md="4" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Total Media Memory:</strong>
+                  <span>[[ (instanceDetail.MediaAcceleratorInfo.TotalMediaMemoryInMiB / 1024).toFixed(0) ]] GB</span>
+                </div>
+              </b-col>
+            </b-row>
+
+            <!-- Media Accelerator Details Table -->
+            <template v-if="instanceDetail.MediaAcceleratorInfo.Accelerators && instanceDetail.MediaAcceleratorInfo.Accelerators.length">
+              <b-button v-b-toggle.media-details-collapse variant="link" class="p-0 mb-2">
+                <h6 class="d-inline">Media Accelerator Details</h6>
+                <i class="ml-2 fas fa-chevron-down"></i>
+              </b-button>
+              <b-collapse id="media-details-collapse" class="mt-2" visible>
+                <b-table-simple hover responsive class="mb-0">
+                  <b-thead>
+                    <b-tr>
+                      <b-th>Model</b-th>
+                      <b-th>Manufacturer</b-th>
+                      <b-th>Memory per Device</b-th>
+                      <b-th>Count</b-th>
+                      <b-th>Total Memory</b-th>
+                    </b-tr>
+                  </b-thead>
+                  <b-tbody>
+                    <b-tr v-for="(acc, index) in instanceDetail.MediaAcceleratorInfo.Accelerators" :key="index">
+                      <b-td>[[ acc.Name ]]</b-td>
+                      <b-td>[[ acc.Manufacturer ]]</b-td>
+                      <b-td>[[ (acc.MemoryInfo.SizeInMiB / 1024).toFixed(0) ]] GB</b-td>
+                      <b-td>[[ acc.Count ]]</b-td>
+                      <b-td>[[ (acc.MemoryInfo.SizeInMiB * acc.Count / 1024).toFixed(0) ]] GB</b-td>
+                    </b-tr>
+                  </b-tbody>
+                </b-table-simple>
+              </b-collapse>
+            </template>
+          </b-card-body>
+        </b-card>
+      </div>
+
+      <!-- Inference Accelerator Information -->
+      <div v-if="instanceDetail.InferenceAcceleratorInfo || instanceDetail.NeuronInfo" class="col-12 mb-2">
+        <b-card no-body>
+          <b-card-header header-bg-variant="light">
+            <h5 class="mb-0">Inference Accelerator Information</h5>
+          </b-card-header>
+          <b-card-body>
+            <!-- Inference Accelerator Details -->
+            <template v-if="instanceDetail.InferenceAcceleratorInfo && instanceDetail.InferenceAcceleratorInfo.Accelerators">
+              <b-row>
+                <b-col md="4" class="mb-3">
+                  <div class="d-flex align-items-center">
+                    <strong class="text-muted mr-2">Total Memory:</strong>
+                    <span>[[ (instanceDetail.InferenceAcceleratorInfo.TotalInferenceMemoryInMiB / 1024).toFixed(0) ]] GB</span>
+                  </div>
+                </b-col>
+              </b-row>
+
+              <b-button v-b-toggle.accelerator-details-collapse variant="link" class="p-0 mb-2">
+                <h6 class="d-inline">Accelerator Details</h6>
+                <i class="ml-2 fas fa-chevron-down"></i>
+              </b-button>
+              <b-collapse id="accelerator-details-collapse" class="mt-2" visible>
+                <b-table-simple hover responsive class="mb-0">
+                  <b-thead>
+                    <b-tr>
+                      <b-th>Name</b-th>
+                      <b-th>Manufacturer</b-th>
+                      <b-th>Memory</b-th>
+                      <b-th>Count</b-th>
+                      <b-th>Total Memory</b-th>
+                    </b-tr>
+                  </b-thead>
+                  <b-tbody>
+                    <b-tr v-for="(acc, index) in instanceDetail.InferenceAcceleratorInfo.Accelerators" :key="index">
+                      <b-td>[[ acc.Name ]]</b-td>
+                      <b-td>[[ acc.Manufacturer ]]</b-td>
+                      <b-td>[[ (acc.MemoryInfo.SizeInMiB / 1024).toFixed(0) ]] GB</b-td>
+                      <b-td>[[ acc.Count ]]</b-td>
+                      <b-td>[[ (acc.MemoryInfo.SizeInMiB * acc.Count / 1024).toFixed(0) ]] GB</b-td>
+                    </b-tr>
+                  </b-tbody>
+                </b-table-simple>
+              </b-collapse>
+            </template>
+
+            <!-- Neuron Details -->
+            <template v-if="instanceDetail.NeuronInfo && instanceDetail.NeuronInfo.NeuronDevices">
+              <b-row>
+                <b-col md="4" class="mb-3">
+                  <div class="d-flex align-items-center">
+                    <strong class="text-muted mr-2">Total Neuron Memory:</strong>
+                    <span>[[ (instanceDetail.NeuronInfo.TotalNeuronDeviceMemoryInMiB / 1024).toFixed(0) ]] GB</span>
+                  </div>
+                </b-col>
+              </b-row>
+
+              <b-button v-b-toggle.neuron-details-collapse variant="link" class="p-0 mb-2">
+                <h6 class="d-inline">Neuron Device Details</h6>
+                <i class="ml-2 fas fa-chevron-down"></i>
+              </b-button>
+              <b-collapse id="neuron-details-collapse" class="mt-2" visible>
+                <b-table-simple hover responsive class="mb-0">
+                  <b-thead>
+                    <b-tr>
+                      <b-th>Name</b-th>
+                      <b-th>Core Count</b-th>
+                      <b-th>Core Version</b-th>
+                      <b-th>Memory</b-th>
+                      <b-th>Count</b-th>
+                      <b-th>Total Memory</b-th>
+                    </b-tr>
+                  </b-thead>
+                  <b-tbody>
+                    <b-tr v-for="(neuron, index) in instanceDetail.NeuronInfo.NeuronDevices" :key="index">
+                      <b-td>[[ neuron.Name ]]</b-td>
+                      <b-td>[[ neuron.CoreInfo.Count ]]</b-td>
+                      <b-td>[[ neuron.CoreInfo.Version ]]</b-td>
+                      <b-td>[[ (neuron.MemoryInfo.SizeInMiB / 1024).toFixed(0) ]] GB</b-td>
+                      <b-td>[[ neuron.Count ]]</b-td>
+                      <b-td>[[ (neuron.MemoryInfo.SizeInMiB * neuron.Count / 1024).toFixed(0) ]] GB</b-td>
+                    </b-tr>
+                  </b-tbody>
+                </b-table-simple>
+              </b-collapse>
+            </template>
+          </b-card-body>
+        </b-card>
+      </div>
+
+      <!-- Additional Features -->
+      <div class="col-12 mb-2">
+        <b-card no-body>
+          <b-card-header header-bg-variant="light">
+            <h5 class="mb-0">Additional Features</h5>
+          </b-card-header>
+          <b-card-body>
+            <!-- Nitro Features -->
+            <b-row>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Nitro Enclaves:</strong>
+                  <b-badge :variant="instanceDetail.NitroEnclavesSupport === 'supported' ? 'success' : 'secondary'">[[ instanceDetail.NitroEnclavesSupport ]]</b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Nitro TPM Support:</strong>
+                  <b-badge :variant="instanceDetail.NitroTpmSupport === 'supported' ? 'success' : 'secondary'">[[ instanceDetail.NitroTpmSupport ]]</b-badge>
+                </div>
+              </b-col>
+              <b-col v-if="instanceDetail.NitroTpmInfo" md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">TPM Support Versions:</strong>
+                  <b-badge v-for="version in instanceDetail.NitroTpmInfo.SupportedVersions" 
+                          :key="version" 
+                          variant="info" 
+                          class="mr-1">
+                    [[ version ]]
+                  </b-badge>
+                </div>
+              </b-col>
+            </b-row>
+            <!-- Advanced Features -->
+            <b-row>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Hibernation:</strong>
+                  <b-badge :variant="instanceDetail.HibernationSupported ? 'success' : 'secondary'">
+                    [[ instanceDetail.HibernationSupported ? 'supported' : 'unsupported' ]]
+                  </b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Auto Recovery:</strong>
+                  <b-badge :variant="instanceDetail.AutoRecoverySupported ? 'success' : 'secondary'">
+                    [[ instanceDetail.AutoRecoverySupported ? 'supported' : 'unsupported' ]]
+                  </b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Dedicated Hosts:</strong>
+                  <b-badge :variant="instanceDetail.DedicatedHostsSupported ? 'success' : 'secondary'">
+                    [[ instanceDetail.DedicatedHostsSupported ? 'supported' : 'unsupported' ]]
+                  </b-badge>
+                </div>
+              </b-col>
+              <b-col md="3" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">PHC Support:</strong>
+                  <b-badge :variant="instanceDetail.PhcSupport === 'supported' ? 'success' : 'secondary'">[[ instanceDetail.PhcSupport ]]</b-badge>
+                </div>
+              </b-col>
+            </b-row>
+            <!-- PlacementGroup Features -->
+            <b-row>
+              <b-col md="6" class="mb-3">
+                <div class="d-flex align-items-center">
+                  <strong class="text-muted mr-2">Placement Strategies:</strong>
+                  <b-badge v-for="strategy in instanceDetail.PlacementGroupInfo.SupportedStrategies" 
+                          :key="strategy" 
+                          variant="info" 
+                          class="mr-1">
+                    [[ strategy ]]
+                  </b-badge>
+                </div>
+              </b-col>
+            </b-row>
+          </b-card-body>
+        </b-card>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div v-if="!loading && !instanceDetail" class="row">
+      <div class="col-12">
+        <b-alert show variant="danger">
+          Failed to load instance details. Please try again.
+        </b-alert>
       </div>
     </div>
   </div>
-
-  <div class="row">
-    <div class="col-8 my-1">
-      <p class="lead"> Metadata for: <em> {{ instance_type }} </em></p>
-    </div>
-  </div>
-
-  <div class="row">  
-    <div class="col-8 mb-2">
-      <pre id="json-detail"></pre>
-    </div>    
-  </div>  
-
 {% endblock %}
 
 {% block script %}
   {{ super() }}
-  <script src="js/json-viewer"></script>
-  <script type="text/javascript">
-    $(function () {
-      var region = $("#region").val();
-      var type = $("#types").val();
-      $.getJSON("instance/detail", { region: region, type: type },
-          function (result) {
-            var options = { withQuotes: false };
-            $('#json-detail').jsonViewer(result, options);
-          });
-    });
-  </script>
+  <script src="js/detail"></script>
 {% endblock %}

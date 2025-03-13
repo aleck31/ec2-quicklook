@@ -24,57 +24,53 @@
 
   <body class="bg-light">
     <div class="container-fluid">
-      <nav class="row" id="navigation-bar">
-        <div class="col-lg-1 col-2" id="logo">
-          <a href=".">
-              <img src="favicon.ico" alt="logo" style="height: 42px;">
-          </a>
+      <nav class="row justify-content-center" id="navigation-bar">
+        <div class="col-xl-9 col-lg-10 col-md-11">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+              <div id="logo">
+                <a href=".">
+                  <img src="favicon.ico" alt="logo" style="height: 42px;">
+                </a>
+              </div>
+              <div id="logo-title">
+                <p>EC2 QuickLook</p>
+              </div>
+            </div>
+            <div id="nav-links">
+              <a href="{{ apiDocsUrl }}" target="_blank">
+                <p>API Docs</p>
+              </a>
+            </div>
+          </div>
         </div>
-        <div class="col-lg-9 col-8" id="logo-title">
-          <p>EC2 QuickLook</p>
-        </div>            
-        <div class="col-lg-2 col-2" id="nav-links">
-          <a href="{{ apiDocsUrl }}" target="_blank">
-            <p>API Docs</p>
-          </a>
-        </div>       
       </nav>
 
-      <main role="main" class="row" id="container-main">
-
-        <div class="col-md-1" id="sidebar">
-          {% block sidebar %}
-          <div class="row">
-            <div class="col-6 mb-1">
-              <p class="text-right">Version:</p>
-            </div>
-            <div class="col-6 mb-1">
-              <p class="text-left">v{{ version }}</p>
-            </div>
+      <main role="main" class="container-fluid" id="container-main">
+        <div class="row justify-content-center">
+          <div class="col-xl-9 col-lg-10 col-md-11" id="contents">
+            {% block content %}
+            {% endblock %}
           </div>
-          <div class="row">
-            <div class="col-12 mb-1">
-              <p class="text-center">AWS Price Calculator:
-              <a href="https://calculator.aws/" target="_blank">Global</a> | <a href="https://calculator.amazonaws.cn/" target="_blank">GCR</a>
-              </p>
-            </div>                      
-          </div>
-          {% endblock %}
         </div>
-
-        <div class="col-md-11" id="contents">
-          {% block content %}
-          {% endblock %}
-        </div>
-
       </main>
+
+      <footer class="container-fluid mt-4 mb-2">
+        <div class="row justify-content-center">
+          <div class="text-center">
+            <p class="text-muted">
+              Version: v{{ version }} | 
+              AWS Price Calculator:
+              <a href="https://calculator.aws/" target="_blank">Global</a> | 
+              <a href="https://calculator.amazonaws.cn/" target="_blank">GCR</a>
+            </p>
+          </div>
+        </div>
+      </footer>
       
     </div>
 
     {% block script %}
-    <!-- <script src="js/jquery"></script> -->
-    <!-- <script src="https://fastly.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script> -->
-    <!-- <script src="/js/bootstrap"></script> -->
     {% endblock %}
 
   </body>

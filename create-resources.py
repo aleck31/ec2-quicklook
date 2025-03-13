@@ -126,8 +126,23 @@ def load_conf_to_table(stage):
     for config_file in ['ec2_regions', 'ec2_operation', 'ec2_instance']:        
         item = load_json_file(config_file)
         try:
+            # Get existing item from database to check version
+            existing_item = conf_table.get_item(
+                Key={'name': item['name']}
+            ).get('Item')
+
+            if existing_item and 'version' in existing_item and 'version' in item:
+                existing_version = existing_item['version']
+                new_version = item['version']
+                
+                # Compare versions (format: YYYY.MM)
+                if float(existing_version.replace('.', '')) >= float(new_version.replace('.', '')):
+                    print(f"- Skipping {config_file}, existing version {existing_version} >= {new_version}")
+                    continue
+
+            # Load new data if no existing version or new version is higher
             conf_table.put_item(Item=item)
-            print(f"- {config_file} imported.")
+            print(f"- {config_file} imported with version {item.get('version', 'N/A')}")
         except Exception as ex:
             print(f"Error importing {config_file}: {str(ex)}")            
 
