@@ -367,7 +367,7 @@
         },
         {
             "category": "burstable",
-            "description": "Burstable General Purpose",
+            "description": "Burstable Performance",
             "display_name": "突增型(测试)",
             "family": [
                 {

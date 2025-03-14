@@ -54,37 +54,34 @@
 
         <div class="row">
           <div class="col-md-4 mb-2">
-            <b-form-group label="Instance Category" label-for="category">
-              <b-form-select
-                id="category"
-                v-model="form.category"
-                :options="categoryOptions"
-                required
-              ></b-form-select>
-            </b-form-group>
-          </div>
-          <div class="col-md-2 mb-2">
             <b-form-group
               label="Instance Family"
               label-for="family"
               :state="familyState"
               :invalid-feedback="familyFeedback"
             >
-              <b-form-select
-                id="family"
-                v-model="form.family"
-                :options="familyOptions"
-                :state="familyState"
-                required
-              ></b-form-select>
-            </b-form-group>
-          </div>
-          <div class="col-md-2 mb-2">
-            <b-form-group label="Instance Size" label-for="types">
               <b-input-group>
                 <b-form-select
-                  id="types"
-                  v-model="form.type"
+                  id="family"
+                  v-model="form.family"
+                  :options="groupedFamilyOptions"
+                  :state="familyState"
+                  required
+                ></b-form-select>
+                <b-input-group-append v-if="familyLoading">
+                  <b-input-group-text>
+                    <b-spinner small></b-spinner>
+                  </b-input-group-text>
+                </b-input-group-append>
+              </b-input-group>
+            </b-form-group>
+          </div>
+          <div class="col-md-3 mb-2">
+            <b-form-group label="Instance Size" label-for="sizes">
+              <b-input-group>
+                <b-form-select
+                  id="sizes"
+                  v-model="form.size"
                   :options="typeOptions"
                   required
                 >
@@ -92,7 +89,7 @@
                     <b-form-select-option value="" disabled>Choose...</b-form-select-option>
                   </template>
                 </b-form-select>
-                <b-input-group-append v-if="typeLoading">
+                <b-input-group-append v-if="sizesLoading">
                   <b-input-group-text>
                     <b-spinner small></b-spinner>
                   </b-input-group-text>
@@ -110,7 +107,7 @@
               ></b-form-select>
             </b-form-group>
           </div>
-          <div class="col-md-2 mb-2">
+          <div class="col-md-3 mb-2">
             <b-form-group label="Disk Size (GiB)" label-for="volsize">
               <b-input-group>
                 <b-form-input

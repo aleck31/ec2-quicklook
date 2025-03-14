@@ -29,7 +29,6 @@ new Vue({
             type: this.type
           }
         });
-        console.log('Response:', response.data);
         this.instanceDetail = response.data;
       } catch (error) {
         console.error('Error loading instance detail:', error);

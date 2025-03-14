@@ -4,7 +4,7 @@ from chalice import Chalice
 
 
 # Application version
-APP_VERSION = '2.0'
+APP_VERSION = '2.1'
 
 def get_version_info() -> Dict[str, str]:
     """Get version information"""

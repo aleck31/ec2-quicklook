@@ -22,7 +22,7 @@ class PricingServiceError(AWSServiceError):
 class InstanceProductParams(TypedDict):
     """Parameters for EC2 instance product queries"""
     region: str  # AWS region code
-    type: str   # Instance type (e.g., 't3.micro')
+    typesize: str   # Instance type with size (e.g., 't3.micro')
     op: str     # Operation type
     option: NotRequired[Literal['OnDemand']]  # Market option, defaults to 'OnDemand'
     tenancy: NotRequired[Literal['Shared', 'Dedicated', 'Host']]  # Instance tenancy, defaults to 'Shared'

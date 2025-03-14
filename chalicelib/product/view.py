@@ -1,7 +1,6 @@
 import boto3
 import ast
 import os
-from functools import lru_cache
 from datetime import datetime, timedelta
 from typing import Dict
 from chalicelib.sdk import PricingClient, EC2Client
@@ -13,6 +12,7 @@ from chalice.app import Response, BadRequestError
 from chalicelib.webui.view import list_ec2_regions
 from app import logger
 from . import bp
+
 
 _PRICING_CLIENT = None
 _EC2_CLIENT = None
@@ -27,7 +27,6 @@ def get_cache_headers(max_age: int = 3600) -> Dict[str, str]:
     }
 
 
-@lru_cache(maxsize=128)
 def get_pricing_client(region: str = 'ap-south-1') -> PricingClient:
     """
     Get cached pricing client instance form ap-south-1 endpoint
@@ -62,7 +61,6 @@ def get_cn_credentials() -> Dict[str, str]:
         raise AWSServiceError("Failed to access China region credentials")
 
 
-@lru_cache(maxsize=128)
 def get_ec2_client(region: str = 'ap-southeast-1') -> EC2Client:
     """Get cached EC2 client instance"""
     global _EC2_CLIENT
@@ -101,14 +99,14 @@ def get_product_instance() -> Response:
         raise BadRequestError('Incorrect query parameter')
     
     try:
-        logger.debug(f"Getting product instance info for region: {query.get('region')}, type: {query.get('type')}")
         pclient = get_pricing_client()
         # Only include required parameters
         params: InstanceProductParams = {
             'region': query['region'],
-            'type': query['type'],
+            'typesize': query['typesize'],
             'op': query['op']
         }
+        logger.debug(f"Getting product instance usging params: {params}")
         # Only add optional parameters if they have non-empty values
         if query.get('option'):
             params['option'] = query['option']
@@ -205,7 +203,7 @@ def get_param_list(res: str) -> Response:
                 resp = [v for v in resp if v not in ['sc1', 'st1']]
 
             # Endpoints that require query parameters
-            case 'types' | 'family' | 'detail':
+            case 'family' | 'sizes' | 'detail':
                 if not query:
                     logger.warning(f"Missing query parameters for instance {res} request")
                     raise BadRequestError('incorrect query parameter')
@@ -214,11 +212,6 @@ def get_param_list(res: str) -> Response:
                 eclient = get_ec2_client(query.get('region'))
                 
                 match res:
-                    case 'types':  # /instance/types?region=xx&arch=xx&family=xx
-                        resp = eclient.get_instance_types(
-                            architecture=query['arch'],
-                            instance_family=query.get('family', 'all')
-                        )
                     case 'family':  # /instance/family?region=xx&arch=xx&category=xx
                         resp = eclient.list_instance_family(
                             architecture=query['arch']
@@ -226,6 +219,11 @@ def get_param_list(res: str) -> Response:
                         # Filter by category if provided
                         if query.get('category'):
                             resp = [f for f in resp if f['category'] == query['category']]
+                    case 'sizes':  # /instance/sizes?region=xx&arch=xx&family=xx
+                        resp = eclient.get_instance_sizes(
+                            architecture=query['arch'],
+                            instance_type=query.get('family', 'all')
+                        )
                     case 'detail':  # /instance/detail?region=xx&type=xx
                         resp = eclient.get_instance_detail(
                             instance_type=query['type']
@@ -239,7 +237,7 @@ def get_param_list(res: str) -> Response:
                 )
 
         # Use longer cache duration (24 hours) for relatively static data
-        max_age = 86400 if res in ['regions', 'operations', 'voltypes', 'categories', 'family', 'types'] else 3600
+        max_age = 86400 if res in ['regions', 'operations', 'categories', 'voltypes', 'sizes', 'detail'] else 0
         return Response(
             body=resp,
             headers=get_cache_headers(max_age)

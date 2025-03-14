@@ -12,14 +12,14 @@ new Vue({
       region: 'us-east-1',
       arch: 'x86_64',
       operation: '',
-      category: '',
       family: '',
-      type: '',
+      size: '',
       voltype: 'gp3',
       volsize: 60
     },
     loading: false,
-    typeLoading: false,
+    familyLoading: false,
+    sizesLoading: false,
     validated: false,
     instance: null,
     volume: null,
@@ -28,8 +28,8 @@ new Vue({
     highlightedRowIndex: -1, // Track which row to highlight
     regionOptions: [],
     operationOptions: [],
-    categoryOptions: [],
-    familyOptions: [],
+    categoryOptions: [], // Keep for grouping
+    familyOptions: [], // Store all families for current architecture
     typeOptions: [],
     voltypeOptions: [],
     detailUrl: null,
@@ -37,8 +37,47 @@ new Vue({
     familyFeedback: ''
   },
   computed: {
+    groupedFamilyOptions() {
+      // Group families by category
+      const groups = [];
+      
+      // Create a map to group families by category
+      const categoryGroups = {};
+      
+      this.familyOptions.forEach(family => {
+        if (!categoryGroups[family.category]) {
+          // Find the category info from categoryOptions
+          const categoryInfo = this.categoryOptions.find(c => c.category === family.category);
+          if (categoryInfo) {
+            categoryGroups[family.category] = {
+              label: `${categoryInfo.display_name} - ${categoryInfo.description}`,
+              options: []
+            };
+          }
+        }
+        
+        if (categoryGroups[family.category]) {
+          categoryGroups[family.category].options.push({
+            value: family.name,
+            text: `${family.name} \u0020 | \u0020 ${family.note}`
+          });
+        }
+      });
+      
+      // Convert to array and sort options within each group
+      Object.values(categoryGroups).forEach(group => {
+        if (group.options.length > 0) {
+          // Sort options by family name
+          group.options.sort((a, b) => a.value.localeCompare(b.value));
+          groups.push(group);
+        }
+      });
+      
+      return groups;
+    },
+    
     isButtonDisabled() {
-      return !this.form.type || this.loading || this.familyState === false;
+      return !this.form.size || this.loading || this.familyState === false;
     },
     priceChange() {
       if (!this.instance || !this.previousPrice) return null;
@@ -84,7 +123,7 @@ new Vue({
     comparisonFields() {
       return [
         { key: 'region', label: 'Region' },
-        { key: 'type', label: 'Instance Type' },
+        { key: 'size', label: 'Instance Size' },
         { key: 'price', label: 'Price (Month)' },
         { key: 'vcpu', label: 'Processor' },
         { key: 'memory', label: 'Memory' },
@@ -104,7 +143,7 @@ new Vue({
         const instanceResponse = await axios.get('product/instance', {
           params: {
             region: this.form.region,
-            type: this.form.type,
+            typesize: this.form.size,
             op: this.form.operation
           }
         });
@@ -121,7 +160,7 @@ new Vue({
         this.volume = volumeResponse.data;
 
         // Update detail URL
-        this.detailUrl = `detail?region=${this.form.region}&type=${this.form.type}`;
+        this.detailUrl = `detail?region=${this.form.region}&type=${this.form.size}`;
 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -134,48 +173,81 @@ new Vue({
         this.loading = false;
       }
     },
-    async updateFamily() {
-      // Reset validation state
-      this.familyState = null;
-      this.familyFeedback = '';
-      
+
+    async updateFamilyList() {
+      this.familyLoading = true;
       try {
+        // Get families for current architecture
         const response = await axios.get('instance/family', {
           params: {
-            region: this.form.region,
-            arch: this.form.arch,
-            category: this.form.category
+            region: 'us-east-1', // Reference region to get all families
+            arch: this.form.arch
           }
         });
-        console.log('API Response:', response.data);
-        this.familyOptions = response.data.map(item => ({
-          value: item.name,
-          text: `${item.name}  :  ${item.note}`
-        }));
-        // Set default family if available
-        if (this.familyOptions.length > 0) {
-          const defaultFamily = this.familyOptions.find(f => ['m5', 'm6g'].includes(f.value));
-          if (defaultFamily) {
-            this.form.family = defaultFamily.value;
-            this.updateTypes();
-          }
+
+        // Store all families with their metadata
+        this.familyOptions = response.data;
+        console.log('Loaded instances types for architecture:', this.familyOptions.length);
+        
+        // Set default family if none selected
+        if (!this.form.family) {
+          this.setDefaultFamily();
+        } else {
+          // Update sizes for current family
+          await this.updateSizes();
         }
       } catch (error) {
-        console.error('Error fetching families:', error);
+        console.error('Error loading families:', error);
+        this.familyOptions = [];
         this.familyState = false;
         this.familyFeedback = 'Failed to load instance families. Please try again.';
+      } finally {
+        this.familyLoading = false;
       }
     },
-    async updateTypes() {
-      if (!this.form.family) return;
-      
-      this.typeLoading = true;
-      try {
-        // Store current size suffix before updating types
-        const currentType = this.form.type;
-        const currentSizeSuffix = currentType ? currentType.match(/[a-z]+\d*\.(.+)/)?.[1] : null;
 
-        const response = await axios.get('instance/types', {
+    setDefaultFamily() {
+      // Clear current selection
+      this.form.family = '';
+      this.form.size = '';
+
+      // Find available default family based on architecture
+      const archDefaults = this.form.arch === 'arm64' ? 
+        ['m7g', 'm8g', 'm7g'] : // ARM defaults
+        ['m6i', 'm7i', 'm5']; // x86 defaults
+      
+      // Try each default family in order
+      let selectedFamily = null;
+      for (const defaultFamily of archDefaults) {
+        const found = this.familyOptions.find(f => f.name === defaultFamily);
+        if (found) {
+          selectedFamily = found;
+          break;
+        }
+      }
+
+      // If no default family is found, pick first family
+      if (!selectedFamily && this.familyOptions.length > 0) {
+        selectedFamily = this.familyOptions[0];
+      }
+
+      // Set the selected family and update types
+      if (selectedFamily) {
+        this.form.family = selectedFamily.name;
+        this.updateSizes();
+      }
+    },
+
+    async updateSizes() {
+      if (!this.form.family) return;
+
+      this.sizesLoading = true;
+      try {
+        // Store current size suffix before updating size list
+        const currentSize = this.form.size;
+        const currentSizeSuffix = currentSize ? currentSize.match(/[a-z]+\d*\.(.+)/)?.[1] : null;
+
+        const response = await axios.get('instance/sizes', {
           params: {
             region: this.form.region,
             arch: this.form.arch,
@@ -200,8 +272,8 @@ new Vue({
             };
             
             // Extract size suffix (e.g., 'large', 'xlarge', '2xlarge')
-            const getSizeSuffix = (type) => {
-              const match = type.match(/[a-z]+\d*\.(.+)/);
+            const getSizeSuffix = (size) => {
+              const match = size.match(/[a-z]+\d*\.(.+)/);
               return match ? match[1] : '';
             };
             
@@ -211,30 +283,30 @@ new Vue({
             return (sizeOrder[sizeA] || 0) - (sizeOrder[sizeB] || 0);
           });
 
-          // Set instance type with priority:
+          // Set instance size with priority:
           // 1. Same size as current (e.g., if current is m5.4xlarge, try to find *.4xlarge)
           // 2. .large instance
           // 3. First available option
-          let selectedType;
+          let selectedSize;
           if (currentSizeSuffix) {
-            selectedType = this.typeOptions.find(t => t.value.endsWith(`.${currentSizeSuffix}`));
+            selectedSize = this.typeOptions.find(t => t.value.endsWith(`.${currentSizeSuffix}`));
           }
-          if (!selectedType) {
-            selectedType = this.typeOptions.find(t => t.value.endsWith('.large')) || this.typeOptions[0];
+          if (!selectedSize) {
+            selectedSize = this.typeOptions.find(t => t.value.endsWith('.large')) || this.typeOptions[0];
           }
-          this.form.type = selectedType.value;
+          this.form.size = selectedSize.value;
           this.familyState = true;
           this.familyFeedback = '';
         } else {
-          // Clear type options and show warning when no instance types are available
+          // Clear size options and show warning when no instance types are available
           this.typeOptions = [{
             value: '',
-            text: 'No instance types available',
+            text: 'No instance available',
             disabled: true
           }];
-          this.form.type = '';
+          this.form.size = '';
           this.familyState = false;
-          this.familyFeedback = `"${this.form.family}" is not supported in this region.`;
+          this.familyFeedback = `The "${this.form.family}" instance is not available in ${this.form.region}.`;
         }
       } catch (error) {
         console.error('Error fetching types:', error);
@@ -243,31 +315,31 @@ new Vue({
           text: 'Error loading instance types',
           disabled: true
         }];
-        this.form.type = '';
+        this.form.size = '';
         this.familyState = false;
         this.familyFeedback = 'Failed to load instance types. Please try again.';
       } finally {
-        this.typeLoading = false;
+        this.sizesLoading = false;
       }
     },
     addToComparison() {
       if (!this.instance || this.comparisonItems.length >= 8) return;
 
-      // Check if this instance type is already in the comparison
+      // Check if this instance size is already in the comparison
       const existingIndex = this.comparisonItems.findIndex(item => 
-        item.type === this.form.type && 
+        item.size === this.form.size && 
         item.region === this.form.region
       );
       if (existingIndex >= 0) {
-        // Instance type from this region already in comparison, highlight the row
+        // Instance size from this region already in comparison, highlight the row
         this.highlightRow(existingIndex);
         return;
       }
 
       // Add the current instance to the comparison list
       const item = {
-        type: this.form.type,
         region: this.form.region,
+        size: this.form.size,
         price: `${this.instance.listPrice.pricePerUnit.currency} ${this.instance.listPrice.pricePerUnit.value.toFixed(2)}`,
         vcpu: `${this.instance.hardwareSpecs.physicalProcessor} ${this.instance.hardwareSpecs.clockSpeed}`,
         memory: this.instance.hardwareSpecs.memory,
@@ -298,22 +370,24 @@ new Vue({
   },
   watch: {
     'form.arch'() {
-      this.form.category = '';
+      // When architecture changes, clear current selection and update family list
       this.form.family = '';
-      this.form.type = '';
-    },
-    'form.category'() {
-      this.form.family = '';
-      this.form.type = '';
-      if (this.form.category) {
-        this.updateFamily();
-      }
+      this.form.size = '';
+      this.familyState = null;
+      this.familyFeedback = '';
+      this.updateFamilyList();
     },
     'form.region'() {
-      this.updateTypes();
+      // When region changes, update sizes to check availability
+      if (this.form.family) {
+        this.updateSizes();
+      }
     },
     'form.family'() {
-      this.updateTypes();
+      // When family changes, update instance types
+      if (this.form.family) {
+        this.updateSizes();
+      }
     }
   },
   async created() {
@@ -341,20 +415,13 @@ new Vue({
         text: vt
       }));
 
-      this.categoryOptions = categoryResponse.data.map(cat => ({
-        value: cat.category,
-        text: `${cat.display_name}  -  ${cat.description}`
-      }));
+      this.categoryOptions = categoryResponse.data;
 
-      // Set default values
+      // Set default operation
       this.form.operation = this.operationOptions.find(op => op.text === 'Linux/UNIX')?.value;
-      
-      // Set default category to 'compute'
-      const defaultCategory = this.categoryOptions.find(cat => cat.value === 'general');
-      if (defaultCategory) {
-        this.form.category = defaultCategory.value;
-        this.updateFamily();
-      }
+
+      // Load families for initial architecture
+      await this.updateFamilyList();
 
     } catch (error) {
       console.error('Error loading initial data:', error);

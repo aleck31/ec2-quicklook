@@ -1,7 +1,8 @@
 import ast
-from functools import lru_cache
+import time
+from functools import lru_cache, wraps
 import boto3
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Callable, TypeVar, cast
 from chalicelib.config import load_config
 from chalicelib.models import (
     EC2ServiceError, PricingServiceError,
@@ -14,6 +15,40 @@ from app import logger
 INSTANCE_TYPE_URL = 'https://aws.amazon.com/cn/ec2/instance-types/'
 VOLUME_TYPE_URL = 'https://aws.amazon.com/cn/ebs/volume-types/'
 
+# Define a generic type for the function
+T = TypeVar('T')
+
+def timed_lru_cache(seconds: int, maxsize: int = 128):
+    """LRU Cache decorator with timeout
+    
+    Args:
+        seconds: Number of seconds to keep entries in cache
+        maxsize: Maximum cache size (default: 128)
+        
+    Returns:
+        Decorated function with timed cache
+    """
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        # Create cache with timeout
+        func = lru_cache(maxsize=maxsize)(func)
+        func.lifetime = seconds
+        func.expiration = time.time() + seconds
+        
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if time.time() > func.expiration:
+                func.cache_clear()
+                func.expiration = time.time() + func.lifetime
+                logger.debug(f"Cache cleared for {func.__name__} due to expiration")
+            return func(*args, **kwargs)
+        
+        wrapper.cache_info = func.cache_info
+        wrapper.cache_clear = func.cache_clear
+        return cast(Callable[..., T], wrapper)
+    
+    return decorator
+
+
 class EC2Client:
     """Client for EC2-related operations"""
     def __init__(self, boto3_client: boto3.client) -> None:
@@ -21,7 +56,7 @@ class EC2Client:
         self.region = boto3_client._client_config.region_name
         logger.debug(f"Initialized EC2Client for region: {self.region}")
 
-    @lru_cache(maxsize=128)
+    @timed_lru_cache(seconds=86400, maxsize=128)  # Cache for 24 hours since this rarely changes
     def list_usage_operations(self) -> Dict[str, Any]:
         """List EC2 usage operations with caching"""
         try:
@@ -30,7 +65,7 @@ class EC2Client:
             logger.error(f"Failed to load operations config: {str(ex)}")
             raise EC2ServiceError(f"Failed to load operations config: {str(ex)}")
 
-    @lru_cache(maxsize=128)
+    @timed_lru_cache(seconds=86400, maxsize=128)  # Cache for 24 hours since categories rarely change
     def list_instance_categories(self) -> List[Dict[str, Any]]:
         """List EC2 instance categories"""
         try:
@@ -50,7 +85,7 @@ class EC2Client:
             logger.error(f"Failed to load instance categories: {str(ex)}")
             raise EC2ServiceError(f"Failed to load instance categories: {str(ex)}")
 
-    @lru_cache(maxsize=128)
+    @timed_lru_cache(seconds=86400, maxsize=128)  # Cache for 24 hours since families rarely change
     def list_instance_family(self, architecture: str) -> List[Dict[str, Any]]:
         """List EC2 instance families"""
         try:
@@ -74,36 +109,62 @@ class EC2Client:
             logger.error(f"Failed to load instance families: {str(ex)}")
             raise EC2ServiceError(f"Failed to load instance families: {str(ex)}")
 
-    @lru_cache(maxsize=128)
-    def get_instance_types(self, architecture: str, instance_family: str) -> List[Dict[str, str]]:
-        """Get EC2 instance types with caching"""
+    @timed_lru_cache(seconds=3600, maxsize=256)
+    def get_instance_sizes(self, architecture: str, instance_type: str) -> List[Dict[str, str]]:
+        """Get available EC2 instance sizes with enhanced caching and pagination
+        
+        Args:
+            architecture: The processor architecture (e.g., 'x86_64', 'arm64')
+            instance_type: The instance type/family (e.g., 'm5', 't3') or 'all'
+            
+        Returns:
+            List of instance types with their type/family names
+            
+        Raises:
+            EC2ServiceError: If the API call fails
+        """
         try:
+            # Start time for performance tracking
+            start_time = time.time()
+            
+            # Optimize filters for better performance
             filters = [
                 {'Name': 'current-generation', 'Values': ['true']},
-                {'Name': 'processor-info.supported-architecture', 'Values': [architecture]},
+                {'Name': 'processor-info.supported-architecture', 'Values': [architecture]}
             ]            
-            if instance_family != 'all':
+            if instance_type != 'all':
                 filters.append({
-                    'Name': 'instance-type', 'Values': [f"{instance_family}.*"]
+                    'Name': 'instance-type', 'Values': [f"{instance_type}.*"]
                 })
-            desc_args = {'Filters' : filters}
 
-            instance_types = []
-            while True:
-                result = self._boto3_client.describe_instance_types(**desc_args)
-                for i in result['InstanceTypes']:
+            instance_sizes = []
+
+            # Use paginator instead of manual pagination for better efficiency
+            paginator = self._boto3_client.get_paginator('describe_instance_types')
+            page_iterator = paginator.paginate(
+                Filters=filters,
+                # Use PaginationConfig to limit page size for more responsive results
+                PaginationConfig={'PageSize': 100}
+            )
+
+            # Process pages more efficiently
+            for page in page_iterator:
+                for i in page['InstanceTypes']:
+                    # Extract only the fields we need (data minimization)
                     insType = i['InstanceType']
-                    tmp = {
+                    instance_sizes.append({
                         'instanceType': insType,
                         'instanceFamily': insType.split('.')[0]
-                    }
-                    instance_types.append(tmp)
-                if 'NextToken' not in result:
-                    break
-                desc_args['NextToken'] = result['NextToken']
+                    })
             
-            logger.debug(f"Found {len(instance_types)} instance types")
-            return instance_types
+            # Sort results for consistent ordering
+            instance_sizes.sort(key=lambda x: x['instanceType'])
+
+            # Log performance metrics
+            elapsed_time = time.time() - start_time
+            logger.debug(f"Found {len(instance_sizes)} available sizes for the {instance_type} instance type in {elapsed_time:.2f}s")
+
+            return instance_sizes
 
         except Exception as ex:
             logger.error(f"Failed to get instance types: {str(ex)}")
@@ -111,6 +172,7 @@ class EC2Client:
                 raise EC2ServiceError(str(ex), error_code=ex.__class__.__name__)
             raise EC2ServiceError(f"Failed to get instance types: {str(ex)}")
 
+    @timed_lru_cache(seconds=3600, maxsize=128)  # Cache for 1 hour since details may change
     def get_instance_detail(self, instance_type: str) -> Dict[str, Any]:
         """Get detailed information about an EC2 instance type"""
         try:
@@ -139,7 +201,7 @@ class PricingClient:
         logger.debug("Initialized PricingClient")
 
     #SDK: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pricing.html#Pricing.Client.describe_services
-    @lru_cache(maxsize=128)
+    @timed_lru_cache(seconds=86400, maxsize=128)  # Cache for 24 hours since service codes rarely change
     def get_service_codes(self) -> Dict[str, Any]:
         """Get AWS service codes with caching"""
         try:
@@ -169,7 +231,7 @@ class PricingClient:
             logger.error(f"Failed to get service codes: {str(ex)}")
             raise PricingServiceError(f"Failed to get service codes: {str(ex)}")
 
-    @lru_cache(maxsize=128)
+    @timed_lru_cache(seconds=86400, maxsize=128)  # Cache for 24 hours since attributes rarely change
     def get_service_attributes(self, service_code: str = 'AmazonEC2') -> Dict[str, Any]:
         """Get service attributes with caching"""
         try:
@@ -191,7 +253,7 @@ class PricingClient:
             logger.error(f"Failed to get service attributes: {str(ex)}")
             raise PricingServiceError(f"Failed to get service attributes: {str(ex)}")
 
-    @lru_cache(maxsize=128)
+    @timed_lru_cache(seconds=86400, maxsize=128)  # Cache for 24 hours since values rarely change
     def get_attribute_values(
         self,
         service_code: str = 'AmazonEC2',
@@ -224,6 +286,7 @@ class PricingClient:
             logger.error(f"Failed to get attribute values: {str(ex)}")
             raise PricingServiceError(f"Failed to get attribute values: {str(ex)}")
 
+    @timed_lru_cache(seconds=3600, maxsize=256)  # Cache for 1 hour since prices may change
     def get_product_instance(self, params: InstanceProductParams) -> ProductResponse:
         """Get EC2 instance Attributes and ListPrice [unit: Month]"""
         try:
@@ -234,7 +297,7 @@ class PricingClient:
                 # {'Type': 'TERM_MATCH', 'Field': 'productFamily', 'Value': 'Compute Instance'},
                 {'Type': 'TERM_MATCH', 'Field': 'capacitystatus','Value': 'UnusedCapacityReservation'}, 
                 {'Type': 'TERM_MATCH', 'Field': 'RegionCode', 'Value': params['region']},
-                {'Type': 'TERM_MATCH', 'Field': 'instanceType', 'Value': params['type']},
+                {'Type': 'TERM_MATCH', 'Field': 'instanceType', 'Value': params['typesize']},
                 {'Type': 'TERM_MATCH', 'Field': 'operation', 'Value': params['op']},
                 # {'Type': 'TERM_MATCH', 'Field': 'operatingSystem', 'Value': 'Linux'},
                 # {'Type': 'TERM_MATCH', 'Field': 'preInstalledSw', 'Value': 'NA'},
@@ -261,7 +324,7 @@ class PricingClient:
                 'productMeta': {
                     'instanceFamily': attributes['instanceFamily'],
                     'currentGeneration': attributes['currentGeneration'],
-                    'introduceUrl': f"{INSTANCE_TYPE_URL}{params['type'].split('.')[0]}",
+                    'introduceUrl': f"{INSTANCE_TYPE_URL}{params['typesize'].split('.')[0]}",
                     'regionCode': attributes['regionCode'],
                     'location': attributes['location'],
                     'tenancy': attributes['tenancy'],
@@ -333,6 +396,7 @@ class PricingClient:
                 raise PricingServiceError(str(ex), error_code=ex.__class__.__name__)
             raise PricingServiceError(f"Failed to get instance product data: {str(ex)}")
 
+    @timed_lru_cache(seconds=3600, maxsize=256)  # Cache for 1 hour since prices may change
     def get_product_volume(self, params: VolumeProductParams) -> ProductResponse:
         """Get EBS volume Attributes and ListPrice [unit: GB-Mo]"""
         try:
