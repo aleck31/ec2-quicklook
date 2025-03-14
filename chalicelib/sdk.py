@@ -286,7 +286,6 @@ class PricingClient:
             logger.error(f"Failed to get attribute values: {str(ex)}")
             raise PricingServiceError(f"Failed to get attribute values: {str(ex)}")
 
-    @timed_lru_cache(seconds=3600, maxsize=256)  # Cache for 1 hour since prices may change
     def get_product_instance(self, params: InstanceProductParams) -> ProductResponse:
         """Get EC2 instance Attributes and ListPrice [unit: Month]"""
         try:
@@ -396,7 +395,6 @@ class PricingClient:
                 raise PricingServiceError(str(ex), error_code=ex.__class__.__name__)
             raise PricingServiceError(f"Failed to get instance product data: {str(ex)}")
 
-    @timed_lru_cache(seconds=3600, maxsize=256)  # Cache for 1 hour since prices may change
     def get_product_volume(self, params: VolumeProductParams) -> ProductResponse:
         """Get EBS volume Attributes and ListPrice [unit: GB-Mo]"""
         try:
