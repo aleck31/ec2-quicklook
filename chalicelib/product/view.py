@@ -237,7 +237,7 @@ def get_param_list(res: str) -> Response:
                 )
 
         # Use longer cache duration (24 hours) for relatively static data
-        max_age = 86400 if res in ['regions', 'operations', 'categories', 'voltypes', 'sizes', 'detail'] else 0
+        max_age = 86400 if res in ['regions', 'operations', 'categories', 'voltypes', 'sizes', 'detail'] else 3600
         return Response(
             body=resp,
             headers=get_cache_headers(max_age)

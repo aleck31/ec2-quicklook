@@ -59,7 +59,7 @@ new Vue({
         if (categoryGroups[family.category]) {
           categoryGroups[family.category].options.push({
             value: family.name,
-            text: `${family.name} \u0020 | \u0020 ${family.note}`
+            text: `${family.name.padEnd(10, '\u00A0')} [\u0020${family.note}\u0020]`
           });
         }
       });
@@ -340,8 +340,8 @@ new Vue({
       const item = {
         region: this.form.region,
         size: this.form.size,
-        price: `${this.instance.listPrice.pricePerUnit.currency} ${this.instance.listPrice.pricePerUnit.value.toFixed(2)}`,
-        vcpu: `${this.instance.hardwareSpecs.physicalProcessor} ${this.instance.hardwareSpecs.clockSpeed}`,
+        price: `${this.instance.listPrice.pricePerUnit.currency} \u0020 ${this.instance.listPrice.pricePerUnit.value.toFixed(2)}`,
+        vcpu: `${this.instance.hardwareSpecs.vcpu} \u0020 vCPU (${this.instance.hardwareSpecs.clockSpeed}) - ${this.instance.hardwareSpecs.physicalProcessor}`,
         memory: this.instance.hardwareSpecs.memory,
         network: this.instance.hardwareSpecs.networkPerformance,
         _rowVariant: '' // Default no highlight

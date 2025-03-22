@@ -170,18 +170,16 @@
                   <span>[[ instanceDetail.NetworkInfo.NetworkPerformance ]]</span>
                 </div>
               </b-col>
-              <b-col md="3" class="mb-3">
+              <b-col md="2" class="mb-3">
                 <div class="d-flex align-items-center">
                   <strong class="text-muted mr-2">Max Interfaces:</strong>
                   <span>[[ instanceDetail.NetworkInfo.MaximumNetworkInterfaces ]]</span>
                 </div>
               </b-col>
-              <b-col md="3" class="mb-3">
+              <b-col md="4" class="mb-3">
                 <div class="d-flex align-items-center">
-                  <strong class="text-muted mr-2">IPv6:</strong>
-                  <b-badge :variant="instanceDetail.NetworkInfo.Ipv6Supported ? 'success' : 'secondary'">
-                    [[ instanceDetail.NetworkInfo.Ipv6Supported ? 'supported' : 'unsupported' ]]
-                  </b-badge>
+                  <strong class="text-muted mr-2">Max IPs per interface:</strong>
+                  <span>[[ instanceDetail.NetworkInfo.Ipv4AddressesPerInterface ]] (IPv4) / [[ instanceDetail.NetworkInfo.Ipv6AddressesPerInterface ]] (IPv6)</span>
                 </div>
               </b-col>
               <b-col md="3" class="mb-3">
@@ -192,16 +190,23 @@
                   </b-badge>
                 </div>
               </b-col>
+            </b-row>
+
+            <!-- ENA / EFA Capabilities -->
+            <b-row>
               <b-col md="3" class="mb-3">
                 <div class="d-flex align-items-center">
-                  <strong class="text-muted mr-2">IPv4 Addresses:</strong>
-                  <span>[[ instanceDetail.NetworkInfo.Ipv4AddressesPerInterface ]] per interface</span>
+                  <strong class="text-muted mr-2">ENA Support:</strong>
+                  <b-badge :variant="instanceDetail.NetworkInfo.EnaSupport === 'supported' ? 'success' : instanceDetail.NetworkInfo.EnaSupport === 'unsupported' ? 'secondary' : 'info'">[[ instanceDetail.NetworkInfo.EnaSupport ]]</b-badge>
+                  </b-badge>
                 </div>
               </b-col>
               <b-col md="3" class="mb-3">
                 <div class="d-flex align-items-center">
-                  <strong class="text-muted mr-2">IPv6 Addresses:</strong>
-                  <span>[[ instanceDetail.NetworkInfo.Ipv6AddressesPerInterface ]] per interface</span>
+                  <strong class="text-muted mr-2">ENA SRD:</strong>
+                  <b-badge :variant="instanceDetail.NetworkInfo.EnaSrdSupported ? 'success' : 'secondary'">
+                    [[ instanceDetail.NetworkInfo.EnaSrdSupported ? 'supported' : 'unsupported' ]]
+                  </b-badge>
                 </div>
               </b-col>
               <b-col md="3" class="mb-3">

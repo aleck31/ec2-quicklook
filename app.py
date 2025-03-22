@@ -4,7 +4,7 @@ from chalice import Chalice
 
 
 # Application version
-APP_VERSION = '2.1'
+APP_VERSION = '2.1.3'
 
 def get_version_info() -> Dict[str, str]:
     """Get version information"""
@@ -15,7 +15,7 @@ app = Chalice(app_name='ec2-quicklook')
 app.version = get_version_info()
 
 # Enhanced logging configuration
-app.log.setLevel(logging.DEBUG)
+app.log.setLevel(logging.INFO)
 # Add timestamp and log level to format
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

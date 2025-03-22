@@ -58,7 +58,7 @@ body {
 /* Instance and Volume card headers */
 .instance-price-card .card-header,
 .volume-price-card .card-header {
-  background-color: #00000008 !important;
+  background-color: #0f606015 !important;
   border-bottom: 1px solid #00000020;
   color: var(--primary-color);
 }
